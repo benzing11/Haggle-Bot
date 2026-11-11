@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ShieldCheck, TimerReset, X } from "lucide-react";
 
 import { usd } from "@/lib/format";
+import { T } from "@/lib/motion";
 import type { Deal, Product } from "@/lib/types";
 import NumberFlow from "@number-flow/react";
 
@@ -80,7 +81,7 @@ export function DealCard({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.3 }}
+      transition={T.micro}
       role="dialog"
       aria-modal="true"
       aria-labelledby="deal-title"
@@ -89,7 +90,7 @@ export function DealCard({
         initial={reduce ? false : { y: 60, opacity: 0, scale: 0.98 }}
         animate={{ y: 0, opacity: 1, scale: 1 }}
         exit={{ y: 40, opacity: 0, scale: 0.98 }}
-        transition={{ type: "spring", stiffness: 260, damping: 26 }}
+        transition={T.ui}
         className="relative w-full max-w-lg overflow-hidden rounded-t-2xl border border-white/[0.1] bg-[#0b0b10]/95 shadow-[0_-20px_80px_rgba(0,0,0,0.6)] sm:rounded-2xl"
       >
         <div

@@ -26,9 +26,10 @@ export function MuteToggle({ className }: { className?: string }) {
       onClick={toggle}
       aria-pressed={muted}
       aria-label={muted ? "Unmute sound" : "Mute sound"}
+      data-cursor="button"
       title={muted ? "Unmute sound" : "Mute sound"}
       className={cn(
-        "grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-ink-muted transition-colors duration-200 hover:border-white/20 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60",
+        "grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-ink-muted transition-colors duration-[var(--duration-micro)] hover:border-white/20 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60",
         className,
       )}
     >

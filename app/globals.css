@@ -42,6 +42,11 @@
   --radius-2xl: calc(var(--radius) * 1.8);
 
   --ease-haggle: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Shared motion tokens — these mirror lib/motion.ts exactly. */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-micro: 200ms;
+  --duration-panel: 500ms;
+  --duration-stagger: 50ms;
 }
 
 :root,
@@ -236,6 +241,75 @@
     mask-composite: intersect;
     -webkit-mask-composite: source-in;
   }
+
+  .tilt-card {
+    transform-style: preserve-3d;
+  }
+
+  .tilt-card:hover,
+  .tilt-card:focus-visible {
+    will-change: transform;
+  }
+
+  .focus-glow {
+    transition:
+      border-color var(--duration-micro) var(--ease-out-soft),
+      box-shadow var(--duration-micro) var(--ease-out-soft);
+  }
+
+  .focus-glow:focus-visible {
+    animation: focus-glow-in var(--duration-micro) var(--ease-out-soft) both;
+  }
+
+  .shimmer-hover {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .shimmer-hover::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(
+      100deg,
+      transparent 18%,
+      rgba(255, 255, 255, 0.32) 50%,
+      transparent 82%
+    );
+    transform: translateX(-120%);
+  }
+
+  .shimmer-hover:hover::after,
+  .shimmer-hover:focus-visible::after {
+    animation: shimmer-sweep 700ms var(--ease-out-soft);
+  }
+}
+
+@keyframes focus-glow-in {
+  from {
+    box-shadow: 0 0 0 0 rgba(245, 185, 74, 0);
+  }
+  to {
+    box-shadow:
+      0 0 0 3px rgba(245, 185, 74, 0.16),
+      0 0 26px rgba(245, 185, 74, 0.32);
+  }
+}
+
+/* The custom cursor only hides the native one while it is actually running. */
+html[data-cursor="custom"],
+html[data-cursor="custom"] * {
+  cursor: none;
+}
+
+/* Regions that render their own cursor (e.g. PayPal's iframe) opt out. */
+html[data-cursor="custom"] [data-cursor-native],
+html[data-cursor="custom"] [data-cursor-native] *,
+html[data-cursor="custom"] [data-cursor-native] iframe {
+  cursor: auto;
 }
 
 @keyframes aurora-drift {
@@ -323,6 +397,23 @@
   .animate-soft-float,
   .animate-shimmer {
     animation: none !important;
+  }
+
+  .shimmer-hover::after {
+    animation: none !important;
+    display: none;
+  }
+
+  .focus-glow:focus-visible {
+    animation: none !important;
+    box-shadow: 0 0 0 2px rgba(245, 185, 74, 0.5);
+  }
+
+  .tilt-card,
+  .tilt-card:hover,
+  .tilt-card:focus-visible {
+    transform-style: flat;
+    will-change: auto;
   }
 
   .caret::after {

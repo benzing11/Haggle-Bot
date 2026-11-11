@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-type SoundName = "tick" | "pop" | "chime" | "thud" | "deal";
+type SoundName = "tick" | "pop" | "chime" | "thud" | "deal" | "clink";
 
 type WindowWithAudio = Window & { webkitAudioContext?: typeof AudioContext };
 
@@ -117,6 +117,12 @@ class SoundEngine {
         break;
       case "thud":
         this.tone(150, 0.26, "sine", 0.1, 62);
+        break;
+      case "clink":
+        // Two struck partials plus a short body: a coin landing on glass.
+        this.tone(2100, 0.06, "triangle", 0.045, 1500);
+        window.setTimeout(() => this.tone(2860, 0.05, "triangle", 0.03, 2150), 55);
+        window.setTimeout(() => this.tone(1640, 0.13, "sine", 0.04, 1180), 105);
         break;
     }
   }

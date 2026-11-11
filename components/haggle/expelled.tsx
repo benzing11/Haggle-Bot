@@ -3,6 +3,8 @@
 import { motion, useReducedMotion } from "motion/react";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 
+import { Magnetic } from "@/components/ui/magnetic";
+import { T } from "@/lib/motion";
 import type { Product } from "@/lib/types";
 
 import { BrindleOrb } from "./brindle-orb";
@@ -26,11 +28,24 @@ export function ExpelledView({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.35 }}
+      transition={T.micro}
       role="dialog"
       aria-modal="true"
       aria-labelledby="expelled-title"
     >
+      {/* Lights dim: one eased step down, no loops. */}
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        initial={reduce ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        style={{
+          background:
+            "radial-gradient(circle at 50% 42%, rgba(0,0,0,0.15) 12%, rgba(0,0,0,0.82) 78%)",
+        }}
+      />
+
       <motion.div
         animate={reduce ? undefined : { x: [0, -9, 9, -6, 4, 0] }}
         transition={{ duration: 0.45, ease: "easeOut" }}
@@ -56,14 +71,17 @@ export function ExpelledView({
         </p>
 
         <div className="mt-7 flex flex-col gap-2.5">
-          <button
-            type="button"
-            onClick={onRetry}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-br from-gold to-ember px-5 py-3 text-[13px] font-medium text-primary-foreground transition-transform duration-200 hover:scale-[1.01] active:scale-[0.99]"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Try again, more politely
-          </button>
+          <Magnetic>
+            <button
+              type="button"
+              onClick={onRetry}
+              data-cursor="button"
+              className="focus-glow shimmer-hover inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-br from-gold to-ember px-5 py-3 text-[13px] font-medium text-primary-foreground transition-transform duration-200 hover:scale-[1.01] active:scale-[0.99]"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Try again, more politely
+            </button>
+          </Magnetic>
           <button
             type="button"
             onClick={onShelf}

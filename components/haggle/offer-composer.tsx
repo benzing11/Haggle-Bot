@@ -1,12 +1,14 @@
 "use client";
 
 import NumberFlow from "@number-flow/react";
-import { motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ArrowUpRight, Check, Loader2, Minus, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { Magnetic } from "@/components/ui/magnetic";
 import { usd } from "@/lib/format";
+import { DURATION, EASE_OUT, T } from "@/lib/motion";
 import { sound } from "@/lib/sound";
 import { cn } from "@/lib/utils";
 
@@ -58,33 +60,54 @@ export function OfferComposer({
     window.setTimeout(() => setJustSent(false), 900);
   }
 
+  const iconKey = justSent ? "done" : busy ? "busy" : "arrow";
+
   return (
     <div className="border-t border-white/[0.07] bg-[#0a0a0f]/60 px-4 pb-4 pt-3.5 backdrop-blur-xl sm:px-5">
       <div className="flex items-end justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="font-mono text-[9px] uppercase tracking-[0.22em] text-ink-muted/80">
+          <label
+            htmlFor="offer-amount"
+            className="font-mono text-[9px] uppercase tracking-[0.22em] text-ink-muted/80"
+          >
             your offer
-          </div>
-          <div className="mt-0.5 flex items-baseline gap-1 border-b border-white/10 pb-1 transition-colors focus-within:border-gold/50">
-            <span className="font-mono text-2xl text-ink-muted">$</span>
-            <input
-              value={draft}
-              onChange={(event) => {
-                const next = event.target.value.replace(/[^0-9.]/g, "").slice(0, 8);
-                setDraft(next);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  submit();
-                }
-              }}
-              inputMode="decimal"
-              aria-label="Your offer in US dollars"
-              placeholder="0"
-              disabled={locked}
-              className="w-full min-w-0 bg-transparent font-mono text-[34px] leading-none tracking-tight text-ink caret-gold outline-none placeholder:text-ink-muted/40 disabled:opacity-60"
-            />
+          </label>
+
+          {/* The digits you see are NumberFlow; the input on top is the real one. */}
+          <div className="focus-glow mt-0.5 flex items-baseline gap-1 border-b border-white/10 pb-1">
+            <span aria-hidden className="font-mono text-2xl text-ink-muted">
+              $
+            </span>
+            <div className="relative min-w-0 flex-1">
+              <div
+                aria-hidden
+                className="pointer-events-none truncate font-mono text-[34px] leading-none tracking-tight text-ink"
+              >
+                <NumberFlow
+                  value={value}
+                  format={{ maximumFractionDigits: 2, minimumFractionDigits: 0 }}
+                />
+              </div>
+              <input
+                id="offer-amount"
+                value={draft}
+                onChange={(event) => {
+                  const next = event.target.value.replace(/[^0-9.]/g, "").slice(0, 8);
+                  setDraft(next);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    submit();
+                  }
+                }}
+                inputMode="decimal"
+                aria-label="Your offer in US dollars"
+                placeholder="0"
+                disabled={locked}
+                className="absolute inset-0 w-full bg-transparent font-mono text-[34px] leading-none tracking-tight text-transparent caret-gold outline-none placeholder:text-transparent disabled:opacity-60 selection:bg-transparent"
+              />
+            </div>
           </div>
         </div>
 
@@ -96,27 +119,40 @@ export function OfferComposer({
             <Plus className="h-3.5 w-3.5" />
           </StepButton>
 
-          <motion.button
-            type="button"
-            onClick={submit}
-            disabled={locked}
-            aria-label="Send offer"
-            whileTap={reduce ? undefined : { scale: 0.94 }}
-            transition={{ type: "spring", stiffness: 260, damping: 26 }}
-            className={cn(
-              "relative ml-1 grid h-11 w-11 place-items-center overflow-hidden rounded-full text-primary-foreground shadow-[0_0_24px_rgba(245,185,74,0.28)] transition-colors duration-200",
-              "bg-gradient-to-br from-gold to-ember disabled:opacity-60",
-            )}
-          >
-            {justSent ? (
-              <Check className="h-4.5 w-4.5" />
-            ) : busy ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <ArrowUpRight className="h-4.5 w-4.5" />
-            )}
-            <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:translate-x-full" />
-          </motion.button>
+          <Magnetic radius={80} className="ml-1">
+            <motion.button
+              type="button"
+              onClick={submit}
+              disabled={locked}
+              aria-label="Send offer"
+              data-cursor="button"
+              whileTap={reduce ? undefined : { scale: 0.96 }}
+              transition={T.ui}
+              className={cn(
+                "focus-glow shimmer-hover relative grid h-11 w-11 place-items-center overflow-hidden rounded-full text-primary-foreground shadow-[0_0_24px_rgba(245,185,74,0.28)] transition-colors duration-200",
+                "bg-gradient-to-br from-gold to-ember disabled:opacity-60",
+              )}
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={iconKey}
+                  initial={reduce ? false : { opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={reduce ? undefined : { opacity: 0, y: -5 }}
+                  transition={{ duration: DURATION.micro, ease: EASE_OUT }}
+                  className="grid place-items-center"
+                >
+                  {justSent ? (
+                    <Check className="h-4.5 w-4.5" />
+                  ) : busy ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ArrowUpRight className="h-4.5 w-4.5" />
+                  )}
+                </motion.span>
+              </AnimatePresence>
+            </motion.button>
+          </Magnetic>
         </div>
       </div>
 
@@ -129,6 +165,7 @@ export function OfferComposer({
         onChange={(event) => {
           setDraft(event.target.value);
           sound.play("tick");
+          sound.vibrate(5);
         }}
         disabled={locked}
         aria-label="Offer amount dial"
@@ -139,10 +176,7 @@ export function OfferComposer({
       <div className="mt-1 flex items-center justify-between font-mono text-[10px] text-ink-muted">
         <span className="uppercase tracking-[0.16em]">dial it</span>
         <span className="flex items-center gap-1.5 text-ink">
-          <NumberFlow
-            value={value}
-            format={{ style: "currency", currency: "USD", maximumFractionDigits: 0 }}
-          />
+          {usd(value)}
           <span className="text-ink-muted/70">of {usd(listPrice)}</span>
         </span>
       </div>
@@ -161,7 +195,7 @@ export function OfferComposer({
           maxLength={240}
           placeholder="Add a reason, a compliment, a sob story…"
           aria-label="Message to Brindle"
-          className="h-9 min-w-0 flex-1 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 text-[12.5px] text-ink placeholder:text-ink-muted/60 outline-none transition-colors focus:border-gold/40 disabled:opacity-60"
+          className="focus-glow h-9 min-w-0 flex-1 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 text-[12.5px] text-ink outline-none placeholder:text-ink-muted/60 disabled:opacity-60"
         />
         <span className="hidden font-mono text-[9px] uppercase tracking-[0.16em] text-ink-muted/60 sm:inline">
           enter to send
@@ -188,9 +222,9 @@ function StepButton({
       aria-label={label}
       onClick={onClick}
       disabled={disabled}
-      whileTap={{ scale: 0.92 }}
-      transition={{ type: "spring", stiffness: 300, damping: 24 }}
-      className="grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-white/[0.05] text-ink-muted transition-colors hover:border-gold/40 hover:text-gold disabled:opacity-50"
+      whileTap={{ scale: 0.96 }}
+      transition={T.ui}
+      className="focus-glow grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-white/[0.05] text-ink-muted transition-colors hover:border-gold/40 hover:text-gold disabled:opacity-50"
     >
       {children}
     </motion.button>

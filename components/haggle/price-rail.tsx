@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 
 import { usd } from "@/lib/format";
+import { EASE_OUT, SPRING_UI_OPTIONS } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 const MIN_FRACTION = 0.35;
@@ -61,7 +62,7 @@ export function PriceRail({
 
   const spring = reduce
     ? { duration: 0 }
-    : { type: "spring" as const, stiffness: 260, damping: 26 };
+    : { type: "spring" as const, ...SPRING_UI_OPTIONS };
 
   if (orientation === "horizontal") {
     return (
@@ -91,6 +92,19 @@ export function PriceRail({
         <div className="absolute right-0 top-[24px] text-[10px] font-mono uppercase tracking-[0.16em] text-ink-muted">
           {usd(listPrice)}
         </div>
+
+        {/* Collision shockwave: the two markers meet, the ring expands once. */}
+        {locked && counterFraction !== null && !reduce && (
+          <motion.span
+            aria-hidden
+            data-rail-shock
+            className="pointer-events-none absolute top-[38px] h-14 w-14 rounded-full border border-gold/70"
+            style={{ left: counterFraction * size }}
+            initial={{ scale: 0.2, opacity: 0.9, x: "-50%", y: "-50%" }}
+            animate={{ scale: 3.6, opacity: 0 }}
+            transition={{ duration: 0.55, ease: EASE_OUT }}
+          />
+        )}
 
         {buyerFraction !== null && (
           <motion.div
@@ -154,6 +168,18 @@ export function PriceRail({
       <span className="absolute bottom-[38%] left-[86px] font-mono text-[10px] uppercase tracking-[0.2em] text-ink-muted/80">
         floor&nbsp;???
       </span>
+
+      {locked && counterFraction !== null && !reduce && (
+        <motion.span
+          aria-hidden
+          data-rail-shock
+          className="pointer-events-none absolute left-[72px] h-16 w-16 rounded-full border border-gold/70"
+          style={{ top: (1 - counterFraction) * size }}
+          initial={{ scale: 0.2, opacity: 0.9, x: "-50%", y: "-50%" }}
+          animate={{ scale: 3.2, opacity: 0 }}
+          transition={{ duration: 0.55, ease: EASE_OUT }}
+        />
+      )}
 
       {buyerFraction !== null && (
         <motion.div

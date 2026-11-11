@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 
 import { usd } from "@/lib/format";
+import { DURATION, T } from "@/lib/motion";
 import type { ChatMessage, Mood } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -57,7 +58,7 @@ export function Chat({
                     transition={{
                       duration: 1.1,
                       repeat: Infinity,
-                      delay: dot * 0.16,
+                      delay: dot * DURATION.stagger,
                       ease: "easeInOut",
                     }}
                   />
@@ -80,7 +81,7 @@ function MessageRow({ message }: { message: ChatMessage }) {
       <motion.div
         initial={reduce ? false : { opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: "spring", stiffness: 260, damping: 26 }}
+        transition={T.ui}
         className="mx-auto flex w-full max-w-[280px] flex-col items-center gap-1 rounded-xl border border-gold/25 bg-gold/[0.06] px-4 py-3 text-center"
       >
         <span className="font-mono text-[9px] uppercase tracking-[0.24em] text-gold/80">
@@ -109,9 +110,9 @@ function MessageRow({ message }: { message: ChatMessage }) {
 
   return (
     <motion.div
-      initial={reduce ? false : { opacity: 0, y: 8, filter: "blur(4px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      initial={reduce ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={T.micro}
       className={cn("flex", isBuyer ? "justify-end" : "items-end gap-2.5")}
     >
       {!isBuyer && (

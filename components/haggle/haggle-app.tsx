@@ -1,10 +1,13 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { celebrate } from "@/lib/celebrate";
+import { DEAL_TIMELINE } from "@/lib/deal-timeline";
+import { T } from "@/lib/motion";
+import { PointerProvider } from "@/lib/pointer";
 import { sound, useSoundUnlock } from "@/lib/sound";
 import type {
   ChatMessage,
@@ -18,6 +21,7 @@ import type {
 
 import { Ambient } from "./ambient";
 import { BrindleOrb } from "./brindle-orb";
+import { CoinCursor, CursorGlow } from "./coin-cursor";
 import { DealCard, type CaptureSummary } from "./deal-card";
 import { ExpelledView } from "./expelled";
 import { MuteToggle } from "./mute-toggle";
@@ -53,7 +57,6 @@ function openingMessage(product: Product): ChatMessage {
 }
 
 export function HaggleApp() {
-  const reduce = useReducedMotion();
   const [phase, setPhase] = useState<Phase>("SHELF");
   const [product, setProduct] = useState<Product | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -61,26 +64,54 @@ export function HaggleApp() {
   const [deal, setDeal] = useState<Deal | null>(null);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [busy, setBusy] = useState(false);
+  const [slowMo, setSlowMo] = useState(false);
+  const reduce = useReducedMotion() ?? false;
+
+  const timers = useRef<number[]>([]);
+  const dealtToken = useRef<string | null>(null);
+
+  const clearTimers = useCallback(() => {
+    for (const timer of timers.current) window.clearTimeout(timer);
+    timers.current = [];
+    setSlowMo(false);
+  }, []);
+
+  useEffect(() => clearTimers, [clearTimers]);
+
+  // Every screen starts at the top. Without this, clicking a product while
+  // scrolled down kept the shelf's offset and the room painted clipped for a
+  // frame (the flash of cut-off headings). Layout effect = before paint.
+  useLayoutEffect(() => {
+    if (phase === "DEAL") return;
+    window.scrollTo(0, 0);
+  }, [phase]);
 
   useSoundUnlock();
 
-  const startHaggle = useCallback((next: Product) => {
-    setProduct(next);
-    setMessages([openingMessage(next)]);
-    setStats(START_STATS);
-    setDeal(null);
-    setReceipt(null);
-    setBusy(false);
-    setPhase("ROOM");
-    sound.play("pop");
-  }, []);
+  const startHaggle = useCallback(
+    (next: Product) => {
+      clearTimers();
+      dealtToken.current = null;
+      setProduct(next);
+      setMessages([openingMessage(next)]);
+      setStats(START_STATS);
+      setDeal(null);
+      setReceipt(null);
+      setBusy(false);
+      setPhase("ROOM");
+      sound.play("pop");
+    },
+    [clearTimers],
+  );
 
   const backToShelf = useCallback(() => {
+    clearTimers();
+    dealtToken.current = null;
     setPhase("SHELF");
     setDeal(null);
     setBusy(false);
     sound.play("tick");
-  }, []);
+  }, [clearTimers]);
 
   async function submitOffer(offer: number, note: string) {
     if (!product || busy) return;
@@ -232,13 +263,26 @@ export function HaggleApp() {
           },
         ]);
 
-        sound.play("deal");
-        void celebrate("deal");
+        // One timeline, one guard: the sequence can only start once per token.
+        if (dealtToken.current !== nextDeal.token) {
+          dealtToken.current = nextDeal.token;
+          sound.play("deal");
 
-        window.setTimeout(() => {
-          // Only advance if the buyer is still in the room with this deal.
-          setPhase((current) => (current === "ROOM" ? "DEAL" : current));
-        }, 900);
+          const at = (ms: number, run: () => void) => {
+            timers.current.push(window.setTimeout(run, ms));
+          };
+
+          if (!reduce) {
+            at(DEAL_TIMELINE.slowMoStart, () => setSlowMo(true));
+            at(DEAL_TIMELINE.slowMoEnd, () => setSlowMo(false));
+            at(DEAL_TIMELINE.confetti, () => void celebrate("deal"));
+          }
+
+          at(DEAL_TIMELINE.card, () => {
+            // Only advance if the buyer is still in the room with this deal.
+            setPhase((current) => (current === "ROOM" ? "DEAL" : current));
+          });
+        }
       }
     } catch {
       toast.error("The shop's line went dead. Try again.");
@@ -249,6 +293,7 @@ export function HaggleApp() {
 
   function handlePaid(capture: CaptureSummary) {
     if (!product) return;
+    clearTimers();
 
     setReceipt({
       orderId: capture.orderId,
@@ -267,6 +312,7 @@ export function HaggleApp() {
   }
 
   function handleExpired() {
+    clearTimers();
     setDeal(null);
     setPhase("ROOM");
     setMessages((previous) => [
@@ -284,6 +330,7 @@ export function HaggleApp() {
   }
 
   function handleCancel() {
+    clearTimers();
     setDeal(null);
     setPhase("ROOM");
     setMessages((previous) => [
@@ -303,8 +350,11 @@ export function HaggleApp() {
     [...messages].reverse().find((message) => message.role === "brindle")?.text ?? "";
 
   return (
-    <div className="relative flex min-h-dvh flex-1 flex-col overflow-x-hidden">
-      <Ambient />
+    <PointerProvider>
+      <div className="relative flex min-h-dvh flex-1 flex-col overflow-x-hidden">
+        <Ambient mood={stats.mood} />
+        <CursorGlow />
+        <CoinCursor dealSignal={deal?.token ?? null} />
 
       <header className="relative z-20 mx-auto flex w-full max-w-[1240px] items-center justify-between px-4 py-5 sm:px-6">
         <button
@@ -333,8 +383,8 @@ export function HaggleApp() {
               key="shelf"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={reduce ? { opacity: 0 } : { opacity: 0, filter: "blur(6px)" }}
-              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              exit={{ opacity: 0 }}
+              transition={T.panel}
             >
               <Shelf onSelect={startHaggle} />
             </motion.div>
@@ -345,19 +395,29 @@ export function HaggleApp() {
               key="room"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={reduce ? { opacity: 0 } : { opacity: 0, filter: "blur(6px)" }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              exit={{ opacity: 0 }}
+              transition={T.panel}
             >
-              <Room
-                product={product}
-                messages={messages}
-                stats={stats}
-                busy={busy}
-                deal={deal}
-                disabled={phase === "EXPELLED"}
-                onSubmit={submitOffer}
-                onBack={backToShelf}
-              />
+              <div
+                style={{
+                  filter: slowMo ? "blur(2px)" : "blur(0px)",
+                  transform: slowMo ? "scale(0.994)" : "scale(1)",
+                  transition:
+                    "filter 150ms var(--ease-out-soft), transform 150ms var(--ease-out-soft)",
+                  willChange: slowMo ? "filter, transform" : undefined,
+                }}
+              >
+                <Room
+                  product={product}
+                  messages={messages}
+                  stats={stats}
+                  busy={busy}
+                  deal={deal}
+                  disabled={phase === "EXPELLED"}
+                  onSubmit={submitOffer}
+                  onBack={backToShelf}
+                />
+              </div>
             </motion.div>
           )}
 
@@ -367,7 +427,7 @@ export function HaggleApp() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
+              transition={T.panel}
             >
               <ReceiptView
                 receipt={receipt}
@@ -402,7 +462,8 @@ export function HaggleApp() {
             onShelf={backToShelf}
           />
         )}
-      </AnimatePresence>
-    </div>
+        </AnimatePresence>
+      </div>
+    </PointerProvider>
   );
 }

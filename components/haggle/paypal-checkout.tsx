@@ -116,7 +116,7 @@ export default function PayPalCheckout({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-cursor-native>
       <PayPalScriptProvider
         options={{
           clientId,

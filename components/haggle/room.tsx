@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { ArrowLeft, Info } from "lucide-react";
 
 import { usd } from "@/lib/format";
+import { T } from "@/lib/motion";
 import type { ChatMessage, Deal, NegotiationStats, Product } from "@/lib/types";
 
 import { BrindleOrb, MOOD_LABEL } from "./brindle-orb";
@@ -66,7 +67,7 @@ export function Room({
           <motion.div
             layoutId={`art-${product.id}`}
             className="relative w-full max-w-[300px]"
-            transition={{ type: "spring", stiffness: 220, damping: 30 }}
+            transition={T.ui}
           >
             <div className={reduce ? undefined : "animate-soft-float"}>
               <ProductArt id={product.id} />
@@ -151,12 +152,12 @@ export function Room({
               className="h-full w-full origin-left rounded-full"
               style={{ backgroundColor: patienceTone }}
               animate={{ scaleX: Math.max(0, Math.min(1, stats.patience / 100)) }}
-              transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 260, damping: 30 }}
+              transition={reduce ? { duration: 0 } : T.ui}
             />
           </div>
 
           <div className="mt-4 flex items-center gap-3">
-            <BrindleOrb mood={stats.mood} size={40} breathe={false} />
+            <BrindleOrb mood={stats.mood} size={40} breathe={false} thinking={busy} />
             <div className="min-w-0">
               <div className="text-[12px] text-ink">Brindle is {MOOD_LABEL[stats.mood]}</div>
               <div className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-ink-muted/70">
@@ -189,7 +190,7 @@ export function Room({
       <section className="order-3 flex min-h-[460px] flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-md lg:order-2 lg:h-[min(74vh,660px)]">
         <header className="flex items-center justify-between border-b border-white/[0.07] px-4 py-3 sm:px-5">
           <div className="flex items-center gap-2.5">
-            <BrindleOrb mood={stats.mood} size={30} breathe={false} />
+            <BrindleOrb mood={stats.mood} size={30} breathe={false} thinking={busy} />
             <div>
               <div className="text-[13px] font-medium text-ink">Brindle</div>
               <div className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-ink-muted/70">

@@ -5,7 +5,10 @@ import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 
+import { Magnetic } from "@/components/ui/magnetic";
 import { shortId, usd } from "@/lib/format";
+import { EASE_OUT, T } from "@/lib/motion";
+import { sound } from "@/lib/sound";
 import type { Receipt } from "@/lib/types";
 
 export function ReceiptView({
@@ -25,9 +28,14 @@ export function ReceiptView({
     const timer = window.setTimeout(() => {
       setAmount(receipt.amount);
       setSaved(Math.max(0, receipt.listPrice - receipt.amount));
-    }, 260);
+    }, 720);
     return () => window.clearTimeout(timer);
   }, [receipt]);
+
+  useEffect(() => {
+    // Lands with the printed ticket; the engine respects the mute toggle.
+    sound.play("clink");
+  }, []);
 
   const percentSaved =
     receipt.listPrice > 0
@@ -39,7 +47,7 @@ export function ReceiptView({
       initial={reduce ? false : { opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      transition={T.panel}
       className="mx-auto w-full max-w-xl py-10"
     >
       <div className="mb-6 text-center">
@@ -51,7 +59,12 @@ export function ReceiptView({
         </h1>
       </div>
 
-      <div className="relative overflow-hidden rounded-2xl border border-white/[0.11] bg-[#0b0b10]/90 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+      <motion.div
+        initial={reduce ? false : { clipPath: "inset(0% 0% 100% 0%)" }}
+        animate={{ clipPath: "inset(0% 0% 0% 0%)" }}
+        transition={{ duration: 0.7, ease: EASE_OUT }}
+        className="relative overflow-hidden rounded-2xl border border-white/[0.11] bg-[#0b0b10]/90 shadow-[0_30px_80px_rgba(0,0,0,0.5)]"
+      >
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 -top-20 h-40 opacity-40 blur-3xl"
@@ -70,7 +83,7 @@ export function ReceiptView({
             <motion.div
               initial={reduce ? false : { scale: 1.7, rotate: -22, opacity: 0 }}
               animate={{ scale: 1, rotate: -8, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 260, damping: 18, delay: 0.35 }}
+              transition={{ ...T.ui, damping: 18, delay: 0.9 }}
               className="stamp-ink shrink-0 rounded-md px-3 py-1.5 font-mono text-[13px] uppercase tracking-[0.24em]"
             >
               paid
@@ -124,17 +137,20 @@ export function ReceiptView({
             sandbox transaction · no real money moved
           </p>
         </div>
-      </div>
+      </motion.div>
 
       <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
-        <button
-          type="button"
-          onClick={onAgain}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-br from-gold to-ember px-5 py-2.5 text-[13px] font-medium text-primary-foreground transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-          Haggle for the same thing
-        </button>
+        <Magnetic>
+          <button
+            type="button"
+            onClick={onAgain}
+            data-cursor="button"
+            className="focus-glow shimmer-hover inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-br from-gold to-ember px-5 py-2.5 text-[13px] font-medium text-primary-foreground transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Haggle for the same thing
+          </button>
+        </Magnetic>
         <button
           type="button"
           onClick={onShelf}
