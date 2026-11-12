@@ -21,7 +21,7 @@ export const PRODUCTS: Product[] = [
       "Gains 4 minutes weekly (net positive)",
       'Comes with a note: "close enough"',
     ],
-    glow: "rgba(245, 185, 74, 0.5)",
+    glow: "rgba(245, 185, 74, 0.55)",
   },
   {
     id: "ambition-jar",
@@ -38,7 +38,7 @@ export const PRODUCTS: Product[] = [
       "Contains approx. 3–4 unrealised ideas",
       "Best before: whenever you're ready",
     ],
-    glow: "rgba(255, 158, 64, 0.45)",
+    glow: "rgba(92, 225, 178, 0.40)",
   },
   {
     id: "mild-sword",
@@ -55,7 +55,7 @@ export const PRODUCTS: Product[] = [
       "Causes minor disruption within a 2ft radius",
       "Previous owner: a middle manager",
     ],
-    glow: "rgba(240, 205, 150, 0.42)",
+    glow: "rgba(150, 180, 230, 0.42)",
   },
   {
     id: "honest-mirror",
@@ -72,7 +72,7 @@ export const PRODUCTS: Product[] = [
       "One hairline crack (adds character, per the last owner)",
       "Does not reflect bad decisions",
     ],
-    glow: "rgba(214, 222, 255, 0.38)",
+    glow: "rgba(150, 200, 255, 0.42)",
   },
 ];
 

@@ -97,7 +97,7 @@ export function BrindleOrb({
         animate={{
           backgroundColor: look.glow,
           scale: ambient ? [1, 1.06, 1] : 1,
-          opacity: thinking ? [0.7, 1, 0.7] : [0.8, 1, 0.8],
+          opacity: thinking ? [0.7, 1, 0.7] : [0.88, 1, 0.88],
         }}
         transition={{
           backgroundColor: { duration: 0.6, ease: EASE_OUT },
@@ -156,8 +156,8 @@ function FallbackOrb({
       <motion.div
         className="absolute inset-[6%] rounded-full"
         style={{
-          background: `radial-gradient(circle at 32% 26%, ${look.core} 0%, ${look.edge} 58%, #241806 128%)`,
-          boxShadow: `inset -4px -8px 16px rgba(0,0,0,0.35), 0 0 22px ${look.glow}`,
+          background: `radial-gradient(circle at 32% 26%, ${look.core} 6%, ${look.edge} 62%, #1C1208 132%)`,
+          boxShadow: `inset -5px -8px 16px rgba(0,0,0,0.42), inset 3px 4px 10px rgba(255,255,255,0.10), 0 0 22px ${look.glow}`,
           scaleY: look.squash,
         }}
         animate={
@@ -172,7 +172,17 @@ function FallbackOrb({
           repeat: Infinity,
           ease: "easeInOut",
         }}
-      />
+      >
+        {/* One specular catch: the cheapest way to read as a lit sphere. */}
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background:
+              "radial-gradient(30% 24% at 32% 24%, rgba(255,255,255,0.58), transparent 72%)",
+            mixBlendMode: "screen",
+          }}
+        />
+      </motion.div>
     </div>
   );
 }

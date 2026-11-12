@@ -73,9 +73,14 @@ export function IntroShell({ children }: { children: ReactNode }) {
       playedThisSession = true;
       root.classList.remove("intro-active");
       // Whatever the timeline managed to do, the hand-off ends with a visible,
-      // interactive page.
+      // interactive page. That includes the staged hero: if the tab was
+      // backgrounded (rAF paused) the rise tween never ran, so clear it here.
       gsap.set(overlay, { display: "none" });
       gsap.set(content, { opacity: 1 });
+      gsap.set(content.querySelectorAll("[data-intro-rise]"), {
+        opacity: 1,
+        y: 0,
+      });
       setFinished(true);
     };
 

@@ -11,11 +11,24 @@ type ProductArtProps = {
 };
 
 /**
+ * Each object's aura, so the four cards don't share one warm wash. These mirror
+ * the accent hues inside the illustrations and the card halos in lib/products.
+ */
+const ART_GLOW: Record<string, { core: string; edge: string }> = {
+  "almost-right-clock": { core: "#F5B94A", edge: "#FF7A45" },
+  "ambition-jar": { core: "#6BE8B5", edge: "#2FB58B" },
+  "mild-sword": { core: "#BFD8FF", edge: "#6E8FC4" },
+  "honest-mirror": { core: "#CFE4FF", edge: "#7FA8E0" },
+};
+const DEFAULT_GLOW = { core: "#F5B94A", edge: "#FF7A45" };
+
+/**
  * Original, code-drawn product illustrations. No external art, no copyright
  * headaches, and they scale to any size.
  */
 export function ProductArt({ id, className, detail = true }: ProductArtProps) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
+  const glow = ART_GLOW[id] ?? DEFAULT_GLOW;
 
   return (
     <svg
@@ -27,31 +40,36 @@ export function ProductArt({ id, className, detail = true }: ProductArtProps) {
     >
       <defs>
         <radialGradient id={`${uid}-glow`} cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#F5B94A" stopOpacity="0.34" />
-          <stop offset="55%" stopColor="#FF7A45" stopOpacity="0.12" />
-          <stop offset="100%" stopColor="#FF7A45" stopOpacity="0" />
+          <stop offset="0%" stopColor={glow.core} stopOpacity="0.38" />
+          <stop offset="55%" stopColor={glow.edge} stopOpacity="0.16" />
+          <stop offset="100%" stopColor={glow.edge} stopOpacity="0" />
         </radialGradient>
         <linearGradient id={`${uid}-metal`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#FFE3A8" />
-          <stop offset="45%" stopColor="#E0A44C" />
-          <stop offset="100%" stopColor="#8A5A21" />
+          <stop offset="0%" stopColor="#FFE6AE" />
+          <stop offset="45%" stopColor="#E3A24A" />
+          <stop offset="100%" stopColor="#7E4E16" />
+        </linearGradient>
+        <linearGradient id={`${uid}-steel`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#F4F8FF" />
+          <stop offset="45%" stopColor="#B4C6E0" />
+          <stop offset="100%" stopColor="#5E7089" />
         </linearGradient>
         <linearGradient id={`${uid}-cloth`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#2E4F4C" />
-          <stop offset="100%" stopColor="#162A29" />
+          <stop offset="0%" stopColor="#2F6B5E" />
+          <stop offset="100%" stopColor="#12332E" />
         </linearGradient>
         <linearGradient id={`${uid}-box`} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#5B4A86" />
           <stop offset="100%" stopColor="#2C2344" />
         </linearGradient>
         <linearGradient id={`${uid}-wood`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#D9A05F" />
-          <stop offset="100%" stopColor="#7A4A22" />
+          <stop offset="0%" stopColor="#E2A760" />
+          <stop offset="100%" stopColor="#6B3D18" />
         </linearGradient>
         <linearGradient id={`${uid}-glass`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#4A5A78" />
-          <stop offset="55%" stopColor="#8FA3BF" />
-          <stop offset="100%" stopColor="#E8D9B4" />
+          <stop offset="0%" stopColor="#5B7AA8" />
+          <stop offset="55%" stopColor="#A8C4E6" />
+          <stop offset="100%" stopColor="#EAF2FF" />
         </linearGradient>
       </defs>
 
@@ -104,7 +122,7 @@ export function ProductArt({ id, className, detail = true }: ProductArtProps) {
             {/* hands that are almost right */}
             <path
               d="M100 96l-13-11"
-              stroke="#FFE3A8"
+              stroke="#FFEFC2"
               strokeWidth="2.4"
               strokeLinecap="round"
             />
@@ -114,7 +132,7 @@ export function ProductArt({ id, className, detail = true }: ProductArtProps) {
               strokeWidth="1.6"
               strokeLinecap="round"
             />
-            <circle cx="100" cy="96" r="2.6" fill="#FFE3A8" />
+            <circle cx="100" cy="96" r="2.6" fill="#FFEFC2" />
 
             {/* the melting bit */}
             <path
@@ -145,7 +163,7 @@ export function ProductArt({ id, className, detail = true }: ProductArtProps) {
               stroke="#F5B94A"
               strokeWidth="1"
               strokeLinecap="round"
-              opacity="0.55"
+              opacity="0.65"
             >
               <path d="M40 70l4 3M160 70l-4 3M46 132l5-2M155 130l-5-2M100 18v5M72 24l2 5M128 24l-2 5" />
             </g>
@@ -162,25 +180,25 @@ export function ProductArt({ id, className, detail = true }: ProductArtProps) {
             rx="48"
             ry="9"
             fill="#171008"
-            stroke="rgba(245,185,74,0.22)"
+            stroke="rgba(120,230,180,0.25)"
           />
 
           {/* light coming from inside */}
-          <ellipse cx="100" cy="116" rx="32" ry="36" fill="#FF9E40" opacity="0.18" />
+          <ellipse cx="100" cy="116" rx="32" ry="36" fill="#6BE8B5" opacity="0.26" />
 
           {/* jar */}
           <path
             d="M78 68h44v8c0 5 8 9 8 19v49c0 10-8 16-18 16H88c-10 0-18-6-18-16V95c0-10 8-14 8-19v-8Z"
-            fill="rgba(255,214,150,0.10)"
-            stroke="rgba(255,227,168,0.45)"
+            fill="rgba(170,255,225,0.12)"
+            stroke="rgba(190,255,232,0.5)"
             strokeWidth="1.4"
           />
 
           {/* what's left of someone's motivation */}
           <path
             d="M74 108c8 4 18 6 26 6s18-2 26-6v35c0 8-7 13-16 13H90c-9 0-16-5-16-13v-35Z"
-            fill="#FF9E40"
-            opacity="0.3"
+            fill="#3FD6A0"
+            opacity="0.42"
           />
 
           {/* cork lid */}
@@ -198,13 +216,13 @@ export function ProductArt({ id, className, detail = true }: ProductArtProps) {
             cy="65"
             rx="18"
             ry="4.5"
-            fill="#C98B2E"
+            fill="#D99A34"
             stroke="rgba(255,227,168,0.5)"
           />
 
           {/* sparks and little bolts */}
           <g
-            stroke="#FFE3A8"
+            stroke="#DFFFF2"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -215,10 +233,10 @@ export function ProductArt({ id, className, detail = true }: ProductArtProps) {
 
           {detail && (
             <g>
-              <circle cx="76" cy="86" r="1.6" fill="#FFE3A8" opacity="0.8" />
-              <circle cx="126" cy="100" r="1.3" fill="#FFE3A8" opacity="0.6" />
-              <circle cx="84" cy="128" r="1.1" fill="#FFE3A8" opacity="0.5" />
-              <circle cx="118" cy="74" r="1" fill="#F5B94A" opacity="0.6" />
+              <circle cx="76" cy="86" r="1.6" fill="#DFFFF2" opacity="0.8" />
+              <circle cx="126" cy="100" r="1.3" fill="#DFFFF2" opacity="0.6" />
+              <circle cx="84" cy="128" r="1.1" fill="#DFFFF2" opacity="0.5" />
+              <circle cx="118" cy="74" r="1" fill="#7CF0C6" opacity="0.7" />
             </g>
           )}
         </g>
@@ -230,7 +248,7 @@ export function ProductArt({ id, className, detail = true }: ProductArtProps) {
           <path
             d="M62 150c0-13 13-21 27-23 8-1 12-6 20-6 17 0 31 10 31 27 0 10-10 16-25 17l-34 1c-11 0-19-6-19-16Z"
             fill="#2A2622"
-            stroke="rgba(245,185,74,0.3)"
+            stroke="rgba(150,180,230,0.35)"
           />
 
           {/* plaque */}
@@ -253,22 +271,22 @@ export function ProductArt({ id, className, detail = true }: ProductArtProps) {
           {/* blade, slightly too big for its stone */}
           <path
             d="M92 64h16l-3 74h-10l-3-74Z"
-            fill={`url(#${uid}-metal)`}
-            stroke="rgba(255,240,210,0.45)"
+            fill={`url(#${uid}-steel)`}
+            stroke="rgba(225,240,255,0.55)"
             strokeWidth="1"
           />
-          <path d="M100 64v72" stroke="rgba(255,255,255,0.5)" strokeWidth="1" />
+          <path d="M100 64v72" stroke="rgba(255,255,255,0.65)" strokeWidth="1" />
 
           {/* crossguard */}
           <path
             d="M72 60h56"
-            stroke="#8A5A21"
+            stroke="#7E4E16"
             strokeWidth="7"
             strokeLinecap="round"
           />
           <path
             d="M72 60h56"
-            stroke="#FFE3A8"
+            stroke="#FFE6AE"
             strokeWidth="2"
             strokeLinecap="round"
             opacity="0.75"
@@ -289,14 +307,14 @@ export function ProductArt({ id, className, detail = true }: ProductArtProps) {
             <g opacity="0.55">
               <path
                 d="M100 76v50"
-                stroke="#FFE3A8"
+                stroke="#CFE4FF"
                 strokeWidth="4"
                 strokeLinecap="round"
-                opacity="0.22"
+                opacity="0.3"
               />
-              <circle cx="64" cy="98" r="1.6" fill="#F5B94A" />
-              <circle cx="138" cy="112" r="1.3" fill="#F5B94A" opacity="0.7" />
-              <circle cx="121" cy="82" r="1" fill="#F5B94A" opacity="0.6" />
+              <circle cx="64" cy="98" r="1.6" fill="#CFE4FF" />
+              <circle cx="138" cy="112" r="1.3" fill="#CFE4FF" opacity="0.7" />
+              <circle cx="121" cy="82" r="1" fill="#CFE4FF" opacity="0.6" />
             </g>
           )}
         </g>
@@ -305,7 +323,7 @@ export function ProductArt({ id, className, detail = true }: ProductArtProps) {
       {id === "honest-mirror" && (
         <g>
           {/* it does seem to be glowing */}
-          <ellipse cx="100" cy="100" rx="48" ry="64" fill="#FFE3A8" opacity="0.08" />
+          <ellipse cx="100" cy="100" rx="48" ry="64" fill="#CFE4FF" opacity="0.1" />
           <ellipse
             cx="100"
             cy="166"
@@ -332,29 +350,30 @@ export function ProductArt({ id, className, detail = true }: ProductArtProps) {
               rx="34"
               ry="50"
               fill={`url(#${uid}-glass)`}
-              opacity="0.85"
+              opacity="0.92"
             />
 
             {/* a reflection slightly brighter than it should be */}
             <path
               d="M84 74c10 8 22 10 32 4"
-              stroke="rgba(255,255,255,0.5)"
+              stroke="rgba(255,255,255,0.6)"
               strokeWidth="3"
               strokeLinecap="round"
-              opacity="0.5"
+              opacity="0.62"
             />
 
             {/* the single elegant hairline crack */}
             <path
               d="M80 64l11 19-6 12 12 17-8 14 10 18"
-              stroke="rgba(255,255,255,0.6)"
+              stroke="rgba(255,255,255,0.75)"
               strokeWidth="0.9"
               strokeLinecap="round"
+              opacity="0.72"
             />
 
             {/* filigree curls */}
             <g
-              stroke="rgba(255,240,210,0.6)"
+              stroke="rgba(255,240,210,0.7)"
               strokeWidth="1.2"
               strokeLinecap="round"
             >
@@ -371,9 +390,9 @@ export function ProductArt({ id, className, detail = true }: ProductArtProps) {
 
           {detail && (
             <g>
-              <circle cx="58" cy="66" r="1.4" fill="#F5B94A" opacity="0.6" />
-              <circle cx="143" cy="86" r="1.2" fill="#F5B94A" opacity="0.45" />
-              <circle cx="70" cy="138" r="1" fill="#F5B94A" opacity="0.5" />
+              <circle cx="58" cy="66" r="1.4" fill="#CFE4FF" opacity="0.6" />
+              <circle cx="143" cy="86" r="1.2" fill="#CFE4FF" opacity="0.45" />
+              <circle cx="70" cy="138" r="1" fill="#CFE4FF" opacity="0.5" />
             </g>
           )}
         </g>

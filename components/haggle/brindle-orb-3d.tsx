@@ -43,6 +43,8 @@ function Scene({ mood, thinking, pointerX, pointerY }: SceneProps) {
   const time = useRef(0);
 
   const look = MOOD_LOOK[mood];
+  /** Damped emissive level; the sine breath rides on top of this. */
+  const emissiveBase = useRef(look.emissive);
 
   // Targets are memoised per mood so the frame loop only lerps toward them.
   const target = useMemo(
@@ -66,12 +68,18 @@ function Scene({ mood, thinking, pointerX, pointerY }: SceneProps) {
     if (material) {
       material.color.lerp(target.color, 1 - Math.exp(-MOOD_LAMBDA * delta));
       material.emissive.lerp(target.emissive, 1 - Math.exp(-MOOD_LAMBDA * delta));
-      material.emissiveIntensity = THREE.MathUtils.damp(
-        material.emissiveIntensity,
+      emissiveBase.current = THREE.MathUtils.damp(
+        emissiveBase.current,
         target.emissiveIntensity,
         MOOD_LAMBDA,
         delta,
       );
+      // A slow shimmer of inner light: barely visible at rest, brighter while
+      // Brindle is thinking. The mesh itself never changes.
+      const breath = thinking ? 0.08 : 0.03;
+      const breathRate = thinking ? 4.2 : 1.6;
+      material.emissiveIntensity =
+        emissiveBase.current * (1 + Math.sin(time.current * breathRate) * breath);
       material.distort = THREE.MathUtils.damp(
         material.distort,
         target.distort,
@@ -121,8 +129,10 @@ function Scene({ mood, thinking, pointerX, pointerY }: SceneProps) {
   return (
     <>
       <ambientLight intensity={0.75} />
-      <pointLight position={[2.4, 2.2, 3]} intensity={2.1} color="#FFF4D8" />
-      <pointLight position={[-2.4, -1.4, 1.6]} intensity={0.9} color="#8C7BFF" />
+      <pointLight position={[2.4, 2.2, 3]} intensity={2.3} color="#FFF4D8" />
+      <pointLight position={[-2.4, -1.4, 1.6]} intensity={1} color="#8C7BFF" />
+      {/* Warm rim from behind: separates the silhouette from the dark room. */}
+      <pointLight position={[-1.7, 1.6, -2.4]} intensity={1.2} color="#FFC47A" />
 
       {/* The face is drawn over the canvas (see orb-eyes), never inside it:
           the distorted sphere can only ever be a body. */}
@@ -135,8 +145,8 @@ function Scene({ mood, thinking, pointerX, pointerY }: SceneProps) {
             emissiveIntensity={look.emissive}
             distort={look.distort}
             speed={look.speed}
-            roughness={0.28}
-            metalness={0.06}
+            roughness={0.22}
+            metalness={0.1}
           />
         </mesh>
       </group>
