@@ -191,7 +191,6 @@ function ShelfCard({
     <motion.button
       ref={ref}
       type="button"
-      data-cursor="haggle"
       onClick={() => {
         rotateX.set(0);
         rotateY.set(0);

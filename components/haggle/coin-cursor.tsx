@@ -7,22 +7,18 @@ import { EASE_OUT } from "@/lib/motion";
 import { usePointer, useReducedMotionPreference } from "@/lib/pointer";
 
 const FADE = { duration: 0.15, ease: EASE_OUT };
-/** Ring radius around the pointer when hovering a shelf card. */
-const RING = 19;
 
-type CursorContext = "pointer" | "haggle" | "native";
+type CursorContext = "pointer" | "native";
 
 function readContext(target: Element | null): CursorContext {
   if (!target) return "pointer";
   if (target.closest("[data-cursor-native]")) return "native";
-  if (target.closest('[data-cursor="haggle"]')) return "haggle";
   return "pointer";
 }
 
 /**
- * The custom cursor: a gold arrow whose tip sits exactly on the pointer, plus
- * the HAGGLE ring on shelf cards. Only the PayPal region falls back to the
- * native pointer.
+ * The custom cursor: a gold arrow whose tip sits exactly on the pointer, in
+ * every context. Only the PayPal region falls back to the native pointer.
  */
 export function CoinCursor({ dealSignal }: { dealSignal?: string | null }) {
   const { tracking, px, py } = usePointer();
@@ -136,25 +132,9 @@ export function CoinCursor({ dealSignal }: { dealSignal?: string | null }) {
       transition={FADE}
     >
       {/* The arrow's tip is the element's origin, so it lands on the pointer. */}
-      <motion.div
-        className="absolute left-0 top-0 origin-top-left"
-        animate={{ opacity: context === "haggle" ? 0 : 1, scale: context === "haggle" ? 0.9 : 1 }}
-        transition={FADE}
-      >
+      <div className="absolute left-0 top-0 origin-top-left">
         <Arrow />
-      </motion.div>
-
-      {/* The only context ring: shelf cards that start a haggle. */}
-      <motion.div
-        className="absolute grid place-items-center rounded-full border border-gold/45 bg-gold/10"
-        style={{ left: -RING, top: -RING, width: RING * 2, height: RING * 2 }}
-        animate={{ opacity: context === "haggle" ? 1 : 0, scale: context === "haggle" ? 1 : 0.86 }}
-        transition={FADE}
-      >
-        <span className="font-mono text-[7.5px] uppercase tracking-[0.16em] text-gold">
-          Haggle
-        </span>
-      </motion.div>
+      </div>
     </motion.div>
   );
 }
