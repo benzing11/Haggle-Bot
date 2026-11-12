@@ -11,6 +11,8 @@ import NumberFlow from "@number-flow/react";
 
 import dynamic from "next/dynamic";
 
+import { BrindleOrb } from "./brindle-orb";
+
 const PayPalCheckout = dynamic(() => import("./paypal-checkout"), {
   ssr: false,
   loading: () => (
@@ -114,10 +116,20 @@ export function DealCard({
         </div>
 
         <div className="relative px-5 pb-5 pt-6 sm:px-6">
-          <h2 id="deal-title" className="font-display text-[28px] leading-tight text-ink">
-            A deal, then.
-          </h2>
-          <p className="mt-1 text-[13px] text-ink-muted">{product.name}</p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 id="deal-title" className="font-display text-[28px] leading-tight text-ink">
+                A deal, then.
+              </h2>
+              <p className="mt-1 text-[13px] text-ink-muted">{product.name}</p>
+            </div>
+            <BrindleOrb
+              mood="delighted"
+              size={56}
+              breathe={false}
+              eyeMode="celebrate"
+            />
+          </div>
 
           <div className="mt-5 flex items-end justify-between gap-4">
             <div>

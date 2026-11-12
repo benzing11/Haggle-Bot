@@ -8,12 +8,15 @@ import {
   isBrindleConfigured,
 } from "@/lib/brindle";
 import { createDealToken } from "@/lib/deal-token";
+import { DEFAULT_LANGUAGE, LANGUAGE_CODES } from "@/lib/language";
 import {
   clampCounter,
   isExpelled,
   MAX_ROUNDS,
   pickExpulsionLine,
+  RATE_LIMIT_LINES,
   summarise,
+  UNCONFIGURED_LINES,
   type HistoryTurn,
 } from "@/lib/negotiation";
 import { merchantToProduct, PERSONALITY_IDS } from "@/lib/merchant";
@@ -42,7 +45,15 @@ const MerchantSchema = z
 const BodySchema = z.object({
   productId: z.string().min(1).max(64),
   message: z.string().max(280).default(""),
-  offer: z.number().finite().min(1).max(100_000),
+  /** Absent on a conversation-only turn. */
+  offer: z.number().finite().min(1).max(100_000).optional(),
+  /** A message with no new price: it must not cost a round or close a deal. */
+  textOnly: z.boolean().default(false),
+  /** Validated against the allowed list; anything else becomes English. */
+  language: z
+    .enum(LANGUAGE_CODES)
+    .default(DEFAULT_LANGUAGE)
+    .catch(DEFAULT_LANGUAGE),
   history: z.array(HistorySchema).max(16).default([]),
   merchant: MerchantSchema.optional(),
 });
@@ -65,13 +76,6 @@ export async function POST(request: Request) {
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
 
-  if (isRateLimited(ip)) {
-    return NextResponse.json(
-      { error: "rate_limited", reply: "One at a time, please. I'm not a kiosk." },
-      { status: 429 },
-    );
-  }
-
   let json: unknown;
   try {
     json = await request.json();
@@ -87,7 +91,21 @@ export async function POST(request: Request) {
     );
   }
 
-  const { productId, message, offer, history, merchant } = parsed.data;
+  const { productId, message, offer, textOnly, language, history, merchant } =
+    parsed.data;
+
+  // After parsing, so the refusal can be in the language the buyer chose.
+  if (isRateLimited(ip)) {
+    return NextResponse.json(
+      { error: "rate_limited", reply: RATE_LIMIT_LINES[language] },
+      { status: 429 },
+    );
+  }
+
+  // A priced turn must carry a price. A conversation-only turn needs none.
+  if (!textOnly && typeof offer !== "number") {
+    return NextResponse.json({ error: "invalid_request" }, { status: 400 });
+  }
 
   let product: ServerProduct;
   if (productId === "merchant") {
@@ -112,16 +130,19 @@ export async function POST(request: Request) {
 
   const fullHistory: HistoryTurn[] = [
     ...cleanHistory,
-    { role: "buyer", text: message, offer },
+    { role: "buyer", text: message, offer: textOnly ? null : (offer ?? null) },
   ];
 
+  // A text-only turn carries no offer, so summarise leaves the round and
+  // patience untouched. The standing offer is whatever was last on the table.
   const snapshot = summarise(fullHistory, product.listPrice);
+  const standingOffer: number | null = textOnly ? snapshot.lastOffer : (offer ?? null);
 
   // Brindle runs out of patience before the model is even consulted. This is
   // the only authority on when the haggle is over.
   if (isExpelled(snapshot)) {
     return NextResponse.json({
-      reply: pickExpulsionLine(snapshot.round),
+      reply: pickExpulsionLine(snapshot.round, language),
       mood: "defeated",
       counter: null,
       deal: false,
@@ -140,8 +161,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error: "model_unconfigured",
-        reply:
-          "My abacus jammed — nobody has plugged in my brain. Add a model API key and try that again.",
+        reply: UNCONFIGURED_LINES[language],
       },
       { status: 503 },
     );
@@ -156,6 +176,8 @@ export async function POST(request: Request) {
       maxRounds: MAX_ROUNDS,
       patience: snapshot.patience,
       buyerBest: snapshot.buyerBest,
+      language,
+      textOnly,
     });
 
     // ---- Code-enforced guardrails -------------------------------------------
@@ -163,10 +185,13 @@ export async function POST(request: Request) {
     let counter = clampCounter(raw.counter, product.floorPrice, product.listPrice);
 
     const offerWithinBounds =
-      offer >= product.floorPrice && offer <= product.listPrice;
-    const deal = raw.deal && offerWithinBounds;
+      standingOffer !== null &&
+      standingOffer >= product.floorPrice &&
+      standingOffer <= product.listPrice;
+    // Words are not an offer: only a priced turn can close a deal.
+    const deal = !textOnly && raw.deal && offerWithinBounds;
 
-    if (raw.deal && !deal) {
+    if (!textOnly && raw.deal && !deal) {
       // Model tried to accept below the floor (prompt injection, bad luck).
       // Refuse, and make sure the visible counter can't leak the floor.
       counter =
@@ -176,16 +201,19 @@ export async function POST(request: Request) {
 
     // A counter at or below the buyer's standing offer is not a negotiation,
     // it's a surrender. Keep Brindle above the offer unless he has accepted.
-    if (!deal && counter !== null && counter <= offer) {
+    if (!deal && counter !== null && standingOffer !== null && counter <= standingOffer) {
       counter = Math.min(
         product.listPrice,
-        Math.round((offer + 1) * 100) / 100,
+        Math.round((standingOffer + 1) * 100) / 100,
       );
     }
 
     if (deal) counter = null;
 
-    const price = deal ? Math.round(Math.min(offer, product.listPrice) * 100) / 100 : null;
+    const price =
+      deal && standingOffer !== null
+        ? Math.round(Math.min(standingOffer, product.listPrice) * 100) / 100
+        : null;
 
     let dealToken: string | null = null;
     let expiresAt: number | null = null;
@@ -222,7 +250,7 @@ export async function POST(request: Request) {
   } catch (error) {
     const reason =
       error instanceof BrindleUnavailableError ? error.reason : "failed";
-    const fallback = fallbackReply(Date.now());
+    const fallback = fallbackReply(Date.now(), language);
 
     console.error("[negotiate] Brindle unavailable:", reason, error);
 

@@ -7,56 +7,72 @@ import type { Product } from "./types";
  */
 export const PRODUCTS: Product[] = [
   {
-    id: "lamp",
-    name: "The Unreasonably Good Lamp",
-    shortName: "Lamp",
-    tagline: "It is, frankly, too good.",
+    id: "almost-right-clock",
+    name: "The Clock That's Always Almost Right",
+    shortName: "Clock",
+    tagline: "Accurate twice a day. More, if you're lucky.",
     blurb:
-      "Warm, impossible light from a lamp that has no business being this good. Two settings: gentle, and dangerously gentle.",
+      "A melting pocket watch of uncertain provenance. It has never been fully wrong, which is more than most people can say. Time is a suggestion, and this clock is very relaxed about it.",
     opening:
-      "Ah, the lamp. My finest unreasonable object. It is worth every cent of the hundred and twenty, and I suspect you know it.",
-    listPrice: 120,
-    specs: ["Brass & smoked glass", "Two warm settings", "Cord included, regrets not"],
-    glow: "rgba(245, 185, 74, 0.55)",
+      "Ah, the clock. It has been right twice today already — quite the overachiever. Ninety-five dollars, and I'll throw in the uncertainty for free.",
+    listPrice: 95,
+    specs: [
+      "Handcrafted in a timezone of its choosing",
+      "Gains 4 minutes weekly (net positive)",
+      'Comes with a note: "close enough"',
+    ],
+    glow: "rgba(245, 185, 74, 0.5)",
   },
   {
-    id: "backpack",
-    name: "A Slightly Haunted Backpack",
-    shortName: "Backpack",
-    tagline: "It remembers your lunch. Fondly.",
+    id: "ambition-jar",
+    name: "A Jar of Someone Else's Ambition",
+    shortName: "Ambition Jar",
+    tagline: "Previous owner was very motivated. For about a week.",
     blurb:
-      "Canvas, leather straps, and one extremely polite presence that rearranges your pens at night. Mostly harmless. Occasionally helpful.",
+      "A glowing mason jar of pure, pre-owned motivation. The original owner pivoted to ceramics. Their ambition, however, remains potent. Contents may include: one half-finished business plan, the confidence to email back, and a vague sense of urgency.",
     opening:
-      "A haunted backpack, and only slightly. It tidies. It hums. It has opinions about your commute. Eighty-five dollars is a kindness.",
-    listPrice: 85,
-    specs: ["18L waxed canvas", "One (1) polite presence", "Pen pockets rearrange themselves"],
-    glow: "rgba(120, 200, 190, 0.45)",
+      "Careful with that one. The ambition inside is still warm. Someone sealed it in a hurry. Seventy dollars, and it's your problem now.",
+    listPrice: 70,
+    specs: [
+      "Sealed for freshness since last January",
+      "Contains approx. 3–4 unrealised ideas",
+      "Best before: whenever you're ready",
+    ],
+    glow: "rgba(255, 158, 64, 0.45)",
   },
   {
-    id: "mystery",
-    name: "Mystery Box of Mild Wonders",
-    shortName: "Mystery Box",
-    tagline: "Contents unknown. Disappointment unlikely.",
+    id: "mild-sword",
+    name: "The Sword of Mild Inconvenience",
+    shortName: "Sword",
+    tagline: "Not evil. Not heroic. Just kind of in the way.",
     blurb:
-      "A sealed box containing four to six objects of gentle surprise. No returns, no spoilers, no curses above a level two.",
+      "A legendary blade of underwhelming power. It won't slay dragons, but it will absolutely cause someone to stub their toe or miss a bus. Comes lodged in a small commemorative stone. The stone is decorative. The inconvenience is real.",
     opening:
-      "The mystery box. I am legally forbidden from telling you what is inside, mostly because I have forgotten. Sixty dollars.",
-    listPrice: 60,
-    specs: ["4–6 mild wonders", "Sealed since Tuesday", "Curse level: 2 or below"],
-    glow: "rgba(196, 150, 255, 0.45)",
+      "The Sword of Mild Inconvenience. Responsible for seventeen missed appointments and one very awkward dinner party. One hundred and thirty dollars, and it comes with the stone.",
+    listPrice: 130,
+    specs: [
+      "Forged in an era of moderate grievances",
+      "Causes minor disruption within a 2ft radius",
+      "Previous owner: a middle manager",
+    ],
+    glow: "rgba(240, 205, 150, 0.42)",
   },
   {
-    id: "chess",
-    name: "Grandmaster's Questionable Chess Set",
-    shortName: "Chess Set",
-    tagline: "Every piece is a queen. Legally distinct.",
+    id: "honest-mirror",
+    name: "A Mirror That's Probably Honest",
+    shortName: "Mirror",
+    tagline: "Reflects your best self. Results may vary.",
     blurb:
-      "Hand-turned pieces from a set with unorthodox opinions about the rules. The board is flawless. The grandmaster is not included.",
+      "An ornate oval mirror of ambiguous truthfulness. Most mirrors show you what's there. This one shows you what's there, with editorial discretion. The crack appeared on its own. We consider this a feature.",
     opening:
-      "The chess set. Beautiful, deeply questionable, and the pawns have started negotiating too. One hundred and fifty.",
-    listPrice: 150,
-    specs: ["Hand-turned hardwood", "3 queens per side (disputed)", "Board folds, rules do not"],
-    glow: "rgba(255, 122, 69, 0.45)",
+      "She's mostly honest. The crack you see is the crack you get. One hundred and ten dollars, and she'll probably say something kind about you. Probably.",
+    listPrice: 110,
+    specs: [
+      "Accuracy: statistically above average",
+      "One hairline crack (adds character, per the last owner)",
+      "Does not reflect bad decisions",
+    ],
+    glow: "rgba(214, 222, 255, 0.38)",
   },
 ];
 

@@ -6,10 +6,16 @@ import { toast } from "sonner";
 
 import { celebrate } from "@/lib/celebrate";
 import { DEAL_TIMELINE } from "@/lib/deal-timeline";
+import {
+  DEFAULT_LANGUAGE,
+  detectLanguage,
+  type Language,
+} from "@/lib/language";
 import { getMerchantSnapshot } from "@/lib/merchant";
 import { T } from "@/lib/motion";
 import { PointerProvider } from "@/lib/pointer";
 import { sound, useSoundUnlock } from "@/lib/sound";
+import { speech } from "@/lib/speech";
 import type {
   ChatMessage,
   Deal,
@@ -25,6 +31,7 @@ import { BrindleOrb } from "./brindle-orb";
 import { CoinCursor, CursorGlow } from "./coin-cursor";
 import { DealCard, type CaptureSummary } from "./deal-card";
 import { ExpelledView } from "./expelled";
+import { LanguagePills } from "./language-pills";
 import { MuteToggle } from "./mute-toggle";
 import { ReceiptView } from "./receipt";
 import { Room } from "./room";
@@ -67,6 +74,7 @@ export function HaggleApp() {
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [busy, setBusy] = useState(false);
   const [slowMo, setSlowMo] = useState(false);
+  const [language, setLanguage] = useState<Language>(DEFAULT_LANGUAGE);
   const reduce = useReducedMotion() ?? false;
 
   const timers = useRef<number[]>([]);
@@ -90,6 +98,17 @@ export function HaggleApp() {
 
   useSoundUnlock();
 
+  // Warm the voice list once, and never let Brindle outlive the shop.
+  useEffect(() => {
+    speech.warm();
+    return () => speech.cancel();
+  }, []);
+
+  // Deal, receipt, expulsion and the shelf all silence him mid-sentence.
+  useEffect(() => {
+    if (phase !== "ROOM") speech.cancel();
+  }, [phase]);
+
   const startHaggle = useCallback(
     (next: Product) => {
       clearTimers();
@@ -100,6 +119,7 @@ export function HaggleApp() {
       setDeal(null);
       setReceipt(null);
       setBusy(false);
+      setLanguage(DEFAULT_LANGUAGE);
       setPhase("ROOM");
       sound.play("pop");
     },
@@ -109,13 +129,14 @@ export function HaggleApp() {
   const backToShelf = useCallback(() => {
     clearTimers();
     dealtToken.current = null;
+    setLanguage(DEFAULT_LANGUAGE);
     setPhase("SHELF");
     setDeal(null);
     setBusy(false);
     sound.play("tick");
   }, [clearTimers]);
 
-  async function submitOffer(offer: number, note: string) {
+  async function submitOffer(offer: number, note: string, textOnly: boolean) {
     if (!product || busy) return;
 
     // The merchant listing lives in this browser; the room sends it along so
@@ -127,11 +148,19 @@ export function HaggleApp() {
       return;
     }
 
+    // Typing in another language is the strongest signal there is: follow the
+    // buyer, so the pills, the prompt and the voice all agree on it.
+    const detected = detectLanguage(note);
+    const turnLanguage = detected ?? language;
+    if (turnLanguage !== language) setLanguage(turnLanguage);
+
     const buyerMessage: ChatMessage = {
       id: newId(),
       role: "buyer",
       text: note,
-      offer,
+      // A conversation-only turn carries no price, so the transcript the
+      // server audits cannot count it as a fresh offer.
+      offer: textOnly ? null : offer,
       kind: "message",
     };
 
@@ -155,6 +184,8 @@ export function HaggleApp() {
           productId: product.id,
           message: note,
           offer,
+          textOnly,
+          language: turnLanguage,
           history,
           ...(merchant
             ? {
@@ -396,6 +427,9 @@ export function HaggleApp() {
         </button>
 
         <div className="flex items-center gap-2">
+          {phase === "ROOM" && (
+            <LanguagePills value={language} onChange={setLanguage} />
+          )}
           <span className="hidden items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-muted sm:inline-flex">
             <span className="h-1.5 w-1.5 rounded-full bg-gold" />
             PayPal sandbox
@@ -447,6 +481,7 @@ export function HaggleApp() {
                   busy={busy}
                   deal={deal}
                   disabled={phase === "EXPELLED"}
+                  language={language}
                   onSubmit={submitOffer}
                   onBack={backToShelf}
                 />

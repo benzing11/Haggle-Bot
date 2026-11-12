@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 
+import { languageName, type Language } from "./language";
 import { pickFallbackLine } from "./negotiation";
 import type { HistoryTurn } from "./negotiation";
 import type { Mood, Product } from "./types";
@@ -58,9 +59,12 @@ export function isBrindleConfigured(): boolean {
   return getProvider() !== null;
 }
 
-export function fallbackReply(seed = Date.now()): BrindleReply {
+export function fallbackReply(
+  seed = Date.now(),
+  language: Language = "en",
+): BrindleReply {
   return {
-    reply: pickFallbackLine(seed),
+    reply: pickFallbackLine(seed, language),
     mood: "skeptical",
     counter: null,
     deal: false,
@@ -75,6 +79,10 @@ type AskInput = {
   maxRounds: number;
   patience: number;
   buyerBest: number | null;
+  /** Validated in the route; never taken raw from the request. */
+  language: Language;
+  /** A message with no new offer: talk, but never close the deal. */
+  textOnly?: boolean;
 };
 
 function systemPrompt({
@@ -84,6 +92,8 @@ function systemPrompt({
   maxRounds,
   patience,
   buyerBest,
+  language,
+  textOnly,
 }: AskInput): string {
   return [
     "You are Brindle, the shopkeeper of a small, dim, extremely tasteful shop called The Unreasonable Goods Co.",
@@ -108,6 +118,12 @@ function systemPrompt({
     "- If the offer is below your floor, deal must be false.",
     `- This is round ${round} of ${maxRounds}. Your patience is ${Math.round(patience)}/100. Buyer's best offer so far: ${buyerBest === null ? "none yet" : `$${buyerBest}`}.`,
     "- If patience is low, be shorter and cooler. If it is at 0, you may end the haggle.",
+    `- The buyer's current language is ${languageName(language)} (${language}). Write every reply in that language, in Brindle's character, even when earlier turns were in another language. If the buyer's latest message is clearly written in a different language, follow the buyer and answer in theirs. Prices are always in USD regardless of language. Keep replies 1–2 sentences.`,
+    ...(textOnly
+      ? [
+          "- This turn is a message with no new offer: answer conversationally and you may adjust your counter, but never set deal=true without a fresh offer.",
+        ]
+      : []),
     "",
     "## Output",
     `Reply by calling the \`${TOOL_NAME}\` tool. \`reply\` is 1–2 short sentences of dialogue only: no stage directions, no markdown, no prices in prose beyond a counter if it helps. \`mood\` is how you feel this turn. \`counter\` is your number in USD, or null when you accept or decline to counter. \`deal\` is true only when you accept their exact current offer.`,

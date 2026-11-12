@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 
 import { Magnetic } from "@/components/ui/magnetic";
+import { BrindleOrb } from "./brindle-orb";
 import { shortId, usd } from "@/lib/format";
 import { EASE_OUT, T } from "@/lib/motion";
 import { sound } from "@/lib/sound";
@@ -50,8 +51,14 @@ export function ReceiptView({
       transition={T.panel}
       className="mx-auto w-full max-w-xl py-10"
     >
-      <div className="mb-6 text-center">
-        <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-success/80">
+      <div className="mb-6 flex flex-col items-center text-center">
+        <BrindleOrb
+          mood="delighted"
+          size={44}
+          breathe={false}
+          eyeMode="still"
+        />
+        <span className="mt-2 font-mono text-[10px] uppercase tracking-[0.3em] text-success/80">
           payment captured
         </span>
         <h1 className="mt-3 font-display text-[clamp(2rem,6vw,3rem)] leading-tight text-ink">

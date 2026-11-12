@@ -4,7 +4,9 @@ import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 
 import { usd } from "@/lib/format";
+import type { Language } from "@/lib/language";
 import { DURATION, T } from "@/lib/motion";
+import { speech } from "@/lib/speech";
 import type { ChatMessage, Mood } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -14,11 +16,13 @@ export function Chat({
   messages,
   busy,
   mood,
+  language,
   className,
 }: {
   messages: ChatMessage[];
   busy: boolean;
   mood: Mood;
+  language: Language;
   className?: string;
 }) {
   const reduce = useReducedMotion();
@@ -34,13 +38,13 @@ export function Chat({
   }, [messages, busy, reduce]);
 
   return (
-    <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
+    <div lang={language} className={cn("flex min-h-0 flex-1 flex-col", className)}>
       <div
         ref={scrollRef}
         className="chat-scroll flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-5"
       >
         {messages.map((message) => (
-          <MessageRow key={message.id} message={message} />
+          <MessageRow key={message.id} message={message} language={language} />
         ))}
 
         {busy && (
@@ -72,7 +76,13 @@ export function Chat({
   );
 }
 
-function MessageRow({ message }: { message: ChatMessage }) {
+function MessageRow({
+  message,
+  language,
+}: {
+  message: ChatMessage;
+  language: Language;
+}) {
   const reduce = useReducedMotion();
   const isBuyer = message.role === "buyer";
 
@@ -134,7 +144,15 @@ function MessageRow({ message }: { message: ChatMessage }) {
               isBuyer ? "text-ink/90" : "text-ink/90",
             )}
           >
-            {isBuyer ? message.text : <Typewriter text={message.text} />}
+            {isBuyer ? (
+              message.text
+            ) : (
+              <Typewriter
+                text={message.text}
+                messageId={message.id}
+                language={language}
+              />
+            )}
           </p>
         )}
 
@@ -153,20 +171,42 @@ function MessageRow({ message }: { message: ChatMessage }) {
   );
 }
 
-function Typewriter({ text }: { text: string }) {
+function Typewriter({
+  text,
+  messageId,
+  language,
+}: {
+  text: string;
+  messageId: string;
+  language: Language;
+}) {
   const reduce = useReducedMotion();
   const [count, setCount] = useState(0);
+  // Read at completion time, so changing the language mid-reveal does not
+  // restart an old message's animation.
+  const languageRef = useRef(language);
 
   useEffect(() => {
-    if (reduce) return;
+    languageRef.current = language;
+  }, [language]);
+
+  useEffect(() => {
+    if (reduce) {
+      speech.speakOnce(messageId, text, languageRef.current);
+      return;
+    }
     let index = 0;
     const interval = window.setInterval(() => {
       index += 1;
       setCount(index);
-      if (index >= text.length) window.clearInterval(interval);
+      if (index >= text.length) {
+        window.clearInterval(interval);
+        // Brindle starts speaking the moment the last character lands.
+        speech.speakOnce(messageId, text, languageRef.current);
+      }
     }, 14);
     return () => window.clearInterval(interval);
-  }, [text, reduce]);
+  }, [text, reduce, messageId]);
 
   const visible = reduce ? text.length : count;
 

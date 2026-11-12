@@ -3,30 +3,46 @@
 import NumberFlow from "@number-flow/react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ArrowUpRight, Check, Loader2, Minus, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Magnetic } from "@/components/ui/magnetic";
 import { usd } from "@/lib/format";
+import { PLACEHOLDERS, type Language } from "@/lib/language";
 import { DURATION, EASE_OUT, T } from "@/lib/motion";
 import { sound } from "@/lib/sound";
 import { cn } from "@/lib/utils";
+
+/** Four lines of the note, then it scrolls. 12.5px text, relaxed leading. */
+const MAX_NOTE_HEIGHT = 96;
+const HINT_INTERVAL_MS = 6000;
 
 export function OfferComposer({
   listPrice,
   busy,
   disabled,
+  language,
   onSubmit,
 }: {
   listPrice: number;
   busy: boolean;
   disabled?: boolean;
-  onSubmit: (offer: number, note: string) => void;
+  language: Language;
+  onSubmit: (offer: number, note: string, textOnly: boolean) => void;
 }) {
   const reduce = useReducedMotion();
   const [draft, setDraft] = useState(() => String(Math.round(listPrice * 0.72)));
   const [note, setNote] = useState("");
   const [justSent, setJustSent] = useState(false);
+  const [lastSent, setLastSent] = useState<number | null>(null);
+  // The hint index carries the language it belongs to, so switching language
+  // starts from the first hint without a cascading effect.
+  const [hint, setHint] = useState<{ language: Language; index: number }>({
+    language,
+    index: 0,
+  });
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const wantFocus = useRef(false);
 
   const value = useMemo(() => {
     const parsed = Number.parseFloat(draft);
@@ -36,6 +52,36 @@ export function OfferComposer({
   const fill = Math.min(100, Math.max(0, (value / listPrice) * 100));
   const valid = value >= 1 && value <= listPrice;
   const locked = busy || disabled || justSent;
+  const empty = note.length === 0;
+  const hints = PLACEHOLDERS[language];
+  const hintIndex = hint.language === language ? hint.index % hints.length : 0;
+
+  // Hints only cycle while the field is empty.
+  useEffect(() => {
+    if (!empty) return;
+    const timer = window.setInterval(() => {
+      setHint((current) => {
+        const base = current.language === language ? current.index : 0;
+        return { language, index: (base + 1) % hints.length };
+      });
+    }, HINT_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [empty, hints.length, language]);
+
+  // Auto-grow to four lines, then scroll.
+  useEffect(() => {
+    const element = textareaRef.current;
+    if (!element) return;
+    element.style.height = "0px";
+    element.style.height = `${Math.min(element.scrollHeight, MAX_NOTE_HEIGHT)}px`;
+  }, [note]);
+
+  // Refocus once Brindle has answered (or the lock lifts).
+  useEffect(() => {
+    if (locked || !wantFocus.current) return;
+    wantFocus.current = false;
+    textareaRef.current?.focus();
+  }, [locked]);
 
   function nudge(delta: number) {
     if (locked) return;
@@ -52,11 +98,24 @@ export function OfferComposer({
       return;
     }
 
+    const trimmed = note.trim();
+    const rounded = Math.round(value * 100) / 100;
+    const unchanged = lastSent !== null && rounded === lastSent;
+    // Same price, something to say: a conversation turn, not a new offer.
+    const textOnly = unchanged && trimmed.length > 0;
+
+    if (unchanged && !trimmed) {
+      toast.error("Change the price or say something — Brindle needs one or the other.");
+      return;
+    }
+
     sound.play("pop");
     sound.vibrate(8);
     setJustSent(true);
-    onSubmit(Math.round(value * 100) / 100, note.trim());
+    onSubmit(rounded, trimmed, textOnly);
+    if (!textOnly) setLastSent(rounded);
     setNote("");
+    wantFocus.current = true;
     window.setTimeout(() => setJustSent(false), 900);
   }
 
@@ -181,23 +240,52 @@ export function OfferComposer({
         </span>
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
-        <input
-          value={note}
-          onChange={(event) => setNote(event.target.value.slice(0, 240))}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              submit();
-            }
-          }}
-          disabled={locked}
-          maxLength={240}
-          placeholder="Add a reason, a compliment, a sob story…"
-          aria-label="Message to Brindle"
-          className="focus-glow h-9 min-w-0 flex-1 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 text-[12.5px] text-ink outline-none placeholder:text-ink-muted/60 disabled:opacity-60"
-        />
-        <span className="hidden font-mono text-[9px] uppercase tracking-[0.16em] text-ink-muted/60 sm:inline">
+      <div className="mt-3 flex items-end gap-2">
+        <div
+          className={cn(
+            "focus-glow relative min-w-0 flex-1 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 transition-colors",
+            busy && !justSent && "pulse-once",
+          )}
+        >
+          <textarea
+            ref={textareaRef}
+            value={note}
+            onChange={(event) => setNote(event.target.value.slice(0, 240))}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                submit();
+              }
+            }}
+            rows={1}
+            disabled={locked}
+            maxLength={240}
+            aria-label="Message to Brindle"
+            className="block max-h-[96px] min-h-[20px] w-full resize-none overflow-y-auto bg-transparent text-[12.5px] leading-relaxed text-ink outline-none disabled:opacity-60"
+          />
+
+          {empty && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-3 top-2 overflow-hidden"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={`${language}-${hintIndex}`}
+                  initial={reduce ? false : { opacity: 0, y: 3 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={reduce ? undefined : { opacity: 0, y: -3 }}
+                  transition={{ duration: 0.35, ease: EASE_OUT }}
+                  className="block truncate text-[12.5px] leading-relaxed text-ink-muted/60"
+                >
+                  {hints[hintIndex]}
+                </motion.span>
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
+
+        <span className="hidden shrink-0 pb-2 font-mono text-[9px] uppercase tracking-[0.16em] text-ink-muted/60 sm:inline">
           enter to send
         </span>
       </div>

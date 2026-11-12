@@ -52,7 +52,7 @@ export function ExpelledView({
         className="w-full max-w-md rounded-2xl border border-white/[0.1] bg-[#0b0b10]/95 p-6 text-center shadow-[0_30px_90px_rgba(0,0,0,0.65)] sm:p-8"
       >
         <div className="mx-auto">
-          <BrindleOrb mood="defeated" size={84} />
+          <BrindleOrb mood="defeated" size={84} eyeMode="closed" />
         </div>
 
         <div className="mt-6 font-mono text-[9px] uppercase tracking-[0.26em] text-danger/80">

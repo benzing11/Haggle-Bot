@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { ArrowLeft, Info } from "lucide-react";
 
 import { usd } from "@/lib/format";
+import type { Language } from "@/lib/language";
 import { T } from "@/lib/motion";
 import type { ChatMessage, Deal, NegotiationStats, Product } from "@/lib/types";
 
@@ -20,6 +21,7 @@ export function Room({
   busy,
   deal,
   disabled,
+  language,
   onSubmit,
   onBack,
 }: {
@@ -29,7 +31,8 @@ export function Room({
   busy: boolean;
   deal: Deal | null;
   disabled?: boolean;
-  onSubmit: (offer: number, note: string) => void;
+  language: Language;
+  onSubmit: (offer: number, note: string, textOnly: boolean) => void;
   onBack: () => void;
 }) {
   const reduce = useReducedMotion();
@@ -204,12 +207,18 @@ export function Room({
           </span>
         </header>
 
-        <Chat messages={messages} busy={busy} mood={stats.mood} />
+        <Chat
+          messages={messages}
+          busy={busy}
+          mood={stats.mood}
+          language={language}
+        />
 
         <OfferComposer
           listPrice={product.listPrice}
           busy={busy}
           disabled={disabled || locked || stats.expelled}
+          language={language}
           onSubmit={onSubmit}
         />
       </section>

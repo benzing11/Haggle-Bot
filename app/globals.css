@@ -31,9 +31,13 @@
   --color-ink: var(--ink);
   --color-ink-muted: var(--ink-muted);
 
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-instrument-serif);
+  /* Geist ships Latin only: Cyrillic (and any other missing glyph) falls
+     through to the platform UI face rather than tofu. */
+  --font-sans: var(--font-geist-sans), "Segoe UI", system-ui, sans-serif;
+  --font-mono:
+    var(--font-geist-mono), ui-monospace, "Cascadia Mono", "Consolas",
+    monospace;
+  --font-display: var(--font-instrument-serif), Georgia, serif;
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -261,6 +265,11 @@
     animation: focus-glow-in var(--duration-micro) var(--ease-out-soft) both;
   }
 
+  /* A field wrapper glows when the field inside it takes focus. */
+  .focus-glow:focus-within {
+    animation: focus-glow-in var(--duration-micro) var(--ease-out-soft) both;
+  }
+
   .shimmer-hover {
     position: relative;
     overflow: hidden;
@@ -382,6 +391,17 @@ html.intro-active * {
   }
 }
 
+@keyframes field-pulse {
+  0% {
+    border-color: rgba(245, 185, 74, 0.55);
+    box-shadow: 0 0 0 1px rgba(245, 185, 74, 0.28);
+  }
+  100% {
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 1px rgba(245, 185, 74, 0);
+  }
+}
+
 @keyframes caret-blink {
   0%,
   49% {
@@ -410,6 +430,11 @@ html.intro-active * {
   transform-origin: center;
 }
 
+/* One accent pulse when Brindle starts typing back — never a loop. */
+.pulse-once {
+  animation: field-pulse 700ms var(--ease-out-soft) 1;
+}
+
 .caret::after {
   content: "";
   display: inline-block;
@@ -425,7 +450,8 @@ html.intro-active * {
   .animate-aurora,
   .animate-soft-float,
   .animate-shimmer,
-  .animate-intro-pulse {
+  .animate-intro-pulse,
+  .pulse-once {
     animation: none !important;
   }
 

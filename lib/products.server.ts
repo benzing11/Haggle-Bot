@@ -13,10 +13,10 @@ export type ServerProduct = Product & {
  * ever returns something below this, the route clamps it back up.
  */
 const FLOOR_PRICES: Record<string, number> = {
-  lamp: 72, // 60% of 120
-  backpack: 51, // 60% of 85
-  mystery: 33, // 55% of 60
-  chess: 96, // 64% of 150
+  "almost-right-clock": 58, // 61% of 95
+  "ambition-jar": 42, // 60% of 70
+  "mild-sword": 78, // 60% of 130
+  "honest-mirror": 66, // 60% of 110
 };
 
 const SERVER_PRODUCTS: ServerProduct[] = PRODUCTS.map((product) => ({
