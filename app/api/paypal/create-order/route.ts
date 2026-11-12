@@ -31,14 +31,38 @@ export async function POST(request: Request) {
   }
 
   const { productId, price } = verified.payload;
-  const product = getServerProduct(productId);
-  if (!product) {
-    return NextResponse.json({ error: "unknown_product" }, { status: 404 });
+
+  // Merchant listings are signed with their own name and bounds, so the order
+  // can be built without a catalogue entry and still rejects an impossible
+  // price.
+  let productName: string;
+  let floorPrice: number;
+  let listPrice: number;
+
+  if (productId === "merchant") {
+    if (
+      !verified.payload.productName ||
+      typeof verified.payload.floorPrice !== "number" ||
+      typeof verified.payload.listPrice !== "number"
+    ) {
+      return NextResponse.json({ error: "invalid_deal" }, { status: 400 });
+    }
+    productName = verified.payload.productName;
+    floorPrice = verified.payload.floorPrice;
+    listPrice = verified.payload.listPrice;
+  } else {
+    const product = getServerProduct(productId);
+    if (!product) {
+      return NextResponse.json({ error: "unknown_product" }, { status: 404 });
+    }
+    productName = product.name;
+    floorPrice = product.floorPrice;
+    listPrice = product.listPrice;
   }
 
   // Defence in depth: a valid signature over an impossible price is still
   // refused.
-  if (price < product.floorPrice || price > product.listPrice) {
+  if (price < floorPrice || price > listPrice) {
     return NextResponse.json({ error: "price_out_of_bounds" }, { status: 400 });
   }
 
@@ -50,11 +74,11 @@ export async function POST(request: Request) {
     // The amount comes only from the verified token — never the request body.
     const order = await createPayPalOrder({
       price,
-      productId: product.id,
-      productName: product.name,
+      productId,
+      productName,
     });
 
-    return NextResponse.json({ id: order.id, price, productId: product.id });
+    return NextResponse.json({ id: order.id, price, productId });
   } catch (error) {
     if (error instanceof PayPalError) {
       console.error("[paypal/create-order]", error.status, error.detail);

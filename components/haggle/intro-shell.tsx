@@ -1,7 +1,7 @@
 "use client";
 
 import { gsap } from "gsap";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 
 /**
  * The first three seconds of the shop. A full-screen black veil hides the shelf
@@ -12,6 +12,14 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
  * overlay unmounts and can never intercept a click, and the main content is
  * guaranteed to end at opacity 1 instead of whatever GSAP last wrote.
  */
+/**
+ * The intro is a first impression, not a toll booth: once it has played in this
+ * tab, coming back from /merchant (or any other route) shows the shop at once.
+ */
+let playedThisSession = false;
+
+const noopSubscribe = () => () => {};
+
 export function IntroShell({ children }: { children: ReactNode }) {
   const contentRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -24,7 +32,20 @@ export function IntroShell({ children }: { children: ReactNode }) {
   const started = useRef(false);
   const done = useRef(false);
 
+  // Hydration-safe "is the browser here yet": false on the server and on the
+  // first client render, true right after, so the markup never disagrees.
+  const mounted = useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  );
+  const visible = finished || (mounted && playedThisSession);
+
   useEffect(() => {
+    // The intro already played in this tab: nothing to do, and the markup above
+    // is already showing the shop.
+    if (playedThisSession) return;
+
     // StrictMode mounts effects twice in development. The first pass is torn
     // down and the second rebuilds the same timeline from scratch.
     if (started.current) return;
@@ -43,11 +64,24 @@ export function IntroShell({ children }: { children: ReactNode }) {
     root.classList.add("intro-active");
     window.scrollTo(0, 0);
 
+    let failsafe = 0;
+
     const finish = () => {
+      window.clearTimeout(failsafe);
+      if (done.current) return;
       done.current = true;
+      playedThisSession = true;
       root.classList.remove("intro-active");
+      // Whatever the timeline managed to do, the hand-off ends with a visible,
+      // interactive page.
+      gsap.set(overlay, { display: "none" });
+      gsap.set(content, { opacity: 1 });
       setFinished(true);
     };
+
+    // If anything interrupts the timeline (a kill, a dropped frame budget), the
+    // page still comes back on its own.
+    failsafe = window.setTimeout(finish, 3_400);
 
     const mm = gsap.matchMedia();
 
@@ -119,6 +153,7 @@ export function IntroShell({ children }: { children: ReactNode }) {
 
     return () => {
       // kill() tears down listeners without reverting the hand-off styles.
+      window.clearTimeout(failsafe);
       mm.kill();
       root.classList.remove("intro-active");
       started.current = false;
@@ -130,13 +165,13 @@ export function IntroShell({ children }: { children: ReactNode }) {
       <div
         ref={contentRef}
         data-intro-content
-        inert={!finished}
-        style={{ opacity: finished ? 1 : 0 }}
+        inert={!visible}
+        style={{ opacity: visible ? 1 : 0 }}
       >
         {children}
       </div>
 
-      {!finished && (
+      {!visible && (
         <div
           ref={overlayRef}
           data-intro-overlay

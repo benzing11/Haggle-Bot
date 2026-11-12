@@ -2,10 +2,17 @@
 
 import { motion, useMotionValue, useReducedMotion, useSpring } from "motion/react";
 import { ArrowUpRight, Sparkles } from "lucide-react";
-import { useEffect, useRef } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 
 import { BorderBeam } from "@/components/ui/border-beam";
 import { usd } from "@/lib/format";
+import {
+  getMerchantServerSnapshot,
+  getMerchantSnapshot,
+  merchantToProduct,
+  subscribeMerchant,
+} from "@/lib/merchant";
 import { SPRING_UI_OPTIONS, T, staggerDelay } from "@/lib/motion";
 import { usePointer } from "@/lib/pointer";
 import { PRODUCTS } from "@/lib/products";
@@ -13,7 +20,6 @@ import type { Product } from "@/lib/types";
 
 import { Parallax } from "./parallax";
 import { ProductArt } from "./product-art";
-import { SmoothScroll } from "./smooth-scroll";
 
 /** Maximum tilt in either axis. More than this stops feeling structural. */
 const TILT = 6;
@@ -21,10 +27,18 @@ const TILT = 6;
 export function Shelf({ onSelect }: { onSelect: (product: Product) => void }) {
   const reduce = useReducedMotion();
 
+  // A merchant listing saved in this browser joins the shelf as a fifth card.
+  const merchant = useSyncExternalStore(
+    subscribeMerchant,
+    getMerchantSnapshot,
+    getMerchantServerSnapshot,
+  );
+  const products: Product[] = merchant
+    ? [...PRODUCTS, merchantToProduct(merchant)]
+    : PRODUCTS;
+
   return (
     <div className="pb-8">
-      <SmoothScroll />
-
       <motion.section
         initial={reduce ? false : { opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -62,12 +76,15 @@ export function Shelf({ onSelect }: { onSelect: (product: Product) => void }) {
         </Parallax>
       </motion.section>
 
-      <div className="mt-12 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {PRODUCTS.map((product, index) => (
+      <div
+        className={`mt-12 grid gap-4 sm:grid-cols-2 ${merchant ? "xl:grid-cols-5" : "xl:grid-cols-4"}`}
+      >
+        {products.map((product, index) => (
           <ShelfCard
             key={product.id}
             product={product}
             index={index}
+            badge={product.id === "merchant" ? "Your listing" : undefined}
             onSelect={onSelect}
           />
         ))}
@@ -82,6 +99,13 @@ export function Shelf({ onSelect }: { onSelect: (product: Product) => void }) {
           <span className="h-1 w-1 rounded-full bg-danger" />
           Lowballs cost patience. Charm buys a little room.
         </span>
+        <Link
+          href="/merchant"
+          className="group ml-auto inline-flex items-center gap-1 text-ink-muted transition-colors hover:text-gold"
+        >
+          {merchant ? "Your listing is live — edit your shop" : "Are you a merchant? Set up your shop"}
+          <ArrowUpRight className="h-3 w-3 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+        </Link>
       </div>
     </div>
   );
@@ -90,15 +114,21 @@ export function Shelf({ onSelect }: { onSelect: (product: Product) => void }) {
 function ShelfCard({
   product,
   index,
+  badge,
   onSelect,
 }: {
   product: Product;
   index: number;
+  badge?: string;
   onSelect: (product: Product) => void;
 }) {
   const reduce = useReducedMotion();
   const { enabled, subscribe } = usePointer();
   const ref = useRef<HTMLButtonElement>(null);
+  // A listing joins the grid after hydration. Its card is never allowed to
+  // depend on an entrance animation to become visible: a paused frame (a
+  // background tab, a slow device) would otherwise leave an invisible card.
+  const late = product.id === "merchant";
   const rotateX = useMotionValue(0);
   const rotateY = useMotionValue(0);
   const springX = useSpring(rotateX, SPRING_UI_OPTIONS);
@@ -167,9 +197,9 @@ function ShelfCard({
         rotateY.set(0);
         onSelect(product);
       }}
-      initial={reduce ? false : { opacity: 0, y: 20 }}
+      initial={reduce || late ? false : { opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ ...T.panel, delay: staggerDelay(index, 0.08) }}
+      transition={{ ...T.panel, delay: late ? 0 : staggerDelay(index, 0.08) }}
       style={{
         rotateX: reduce ? 0 : springX,
         rotateY: reduce ? 0 : springY,
@@ -178,8 +208,23 @@ function ShelfCard({
       whileTap={reduce ? undefined : { scale: 0.985 }}
       className="tilt-card group relative rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
-      <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.035] backdrop-blur-md transition-colors duration-300 group-hover:border-white/[0.16]">
+      <div
+        className={
+          late
+            ? // The listing sits last, where the ambient glow has faded, so a
+              // 3.5% fill over a dark backdrop reads as an empty slot. Its panel
+              // carries its own weight instead of borrowing light from behind.
+              "relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/[0.14] bg-white/[0.07] transition-colors duration-300 group-hover:border-white/[0.22]"
+            : "relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.035] backdrop-blur-md transition-colors duration-300 group-hover:border-white/[0.16]"
+        }
+      >
         <BorderBeam className="opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+
+        {badge && (
+          <span className="absolute right-4 top-4 z-10 rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 font-mono text-[8.5px] uppercase tracking-[0.16em] text-gold backdrop-blur-sm">
+            {badge}
+          </span>
+        )}
 
         {/* Cursor spotlight: driven by CSS vars, never React state. */}
         <div

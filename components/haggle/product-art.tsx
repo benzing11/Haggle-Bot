@@ -130,6 +130,84 @@ export function ProductArt({ id, className, detail = true }: ProductArtProps) {
         </g>
       )}
 
+      {id === "merchant" && (
+        <g>
+          <path
+            d="M104 30c-2 14-6 22-10 30"
+            stroke="rgba(245,185,74,0.45)"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+          <g transform="rotate(-9 100 108)">
+            <rect
+              x="64"
+              y="58"
+              width="72"
+              height="104"
+              rx="11"
+              fill="#171319"
+              stroke="rgba(245,185,74,0.4)"
+              strokeWidth="1.2"
+            />
+            <circle
+              cx="100"
+              cy="72"
+              r="4"
+              fill="#07070A"
+              stroke="rgba(245,185,74,0.55)"
+            />
+            <path
+              d="M82 94h34M82 106h22M82 118h29"
+              stroke="rgba(244,241,234,0.22)"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+            />
+            <text
+              x="100"
+              y="150"
+              textAnchor="middle"
+              fontFamily="serif"
+              fontSize="22"
+              fill="#F5B94A"
+              opacity="0.9"
+            >
+              $
+            </text>
+          </g>
+          {detail && (
+            <g>
+              <circle
+                cx="139"
+                cy="150"
+                r="15"
+                fill={`url(#${uid}-metal)`}
+                opacity="0.92"
+              />
+              <circle
+                cx="139"
+                cy="150"
+                r="10.5"
+                fill="none"
+                stroke="rgba(28,18,6,0.35)"
+                strokeWidth="1"
+              />
+              <text
+                x="139"
+                y="155"
+                textAnchor="middle"
+                fontFamily="serif"
+                fontSize="12"
+                fill="#2A1B08"
+              >
+                B
+              </text>
+              <circle cx="60" cy="70" r="1.6" fill="#F5B94A" opacity="0.6" />
+              <circle cx="146" cy="92" r="1.2" fill="#F5B94A" opacity="0.45" />
+            </g>
+          )}
+        </g>
+      )}
+
       {id === "chess" && (
         <g>
           <path d="M52 138l48-26 48 26-48 24-48-24Z" fill="#1E1A16" stroke="rgba(245,185,74,0.3)" />

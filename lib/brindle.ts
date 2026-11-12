@@ -345,3 +345,158 @@ export async function askBrindle(input: AskInput): Promise<BrindleReply> {
     "Neither GROQ_API_KEY nor ANTHROPIC_API_KEY is set",
   );
 }
+
+/* -------------------------------------------------------- merchant preview */
+
+export type OpeningInput = {
+  name: string;
+  description: string;
+  listPrice: number;
+  personality: string;
+};
+
+const OPENING_TIMEOUT_MS = 6_000;
+
+/**
+ * The line itself is one or two sentences — about 25 tokens. gpt-oss bills its
+ * hidden reasoning out of the same completion budget, so a literal 80-token
+ * cap cut roughly one line in six mid-sentence. Anthropic does not reason
+ * here, so it keeps the exact 80; Groq gets headroom for the thinking and the
+ * output is still validated to be a whole sentence.
+ */
+const OPENING_TOKENS_ANTHROPIC = 80;
+const OPENING_TOKENS_GROQ = 160;
+
+/** Spoken dialogue ends with punctuation, not mid-thought. */
+function isWholeLine(line: string): boolean {
+  return /[.!?…]["'”’)]?$/.test(line);
+}
+
+/** Strip wrapping quotes, stray dashes and newlines: this is spoken dialogue. */
+function cleanOpening(raw: string): string {
+  return raw
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^["'“‘]+|["'”’]+$/g, "")
+    .replace(/^[-–—]\s*/, "")
+    .trim()
+    .slice(0, 240);
+}
+
+function openingPrompt({ name, description, listPrice, personality }: OpeningInput): string {
+  const brief: Record<string, string> = {
+    fair_trader:
+      "Fair Trader: reasonable, concedes steadily, rewards good reasoning.",
+    tough_negotiator:
+      "Tough Negotiator: holds firm, gives small drops, tests the buyer's patience.",
+    pushover: "Pushover: folds quickly, hates conflict, easy to charm.",
+    wildcard:
+      "Wildcard: unpredictable, could be generous or stubborn, mood-driven.",
+  };
+
+  return [
+    "You are Brindle, the dry-witted shopkeeper of a dim, tasteful shop called The Unreasonable Goods Co.",
+    "A merchant has listed an object in your shop. Write the ONE line you say to open the haggle.",
+    "",
+    `Object: ${name}`,
+    `One-line description: ${description || "(none given)"}`,
+    `List price: $${listPrice} USD`,
+    `Your personality for this listing — ${brief[personality] ?? brief.fair_trader}`,
+    "",
+    "Rules:",
+    "- 1–2 short sentences, under 40 words, in character as Brindle.",
+    "- Invite an offer. Do not reveal, hint at, or invent a floor price.",
+    "- No stage directions, no markdown, no emoji, no real brands or people.",
+    "- No quotation marks around the line. Reply with the line only.",
+  ].join("\n");
+}
+
+type GroqTextResponse = {
+  choices?: Array<{
+    finish_reason?: string;
+    message?: { content?: string | null };
+  }>;
+};
+
+async function openingFromGroq(input: OpeningInput): Promise<string> {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    throw new BrindleUnavailableError("unconfigured", "GROQ_API_KEY is not set");
+  }
+
+  const response = await fetch(GROQ_CHAT_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      max_tokens: OPENING_TOKENS_GROQ,
+      reasoning_effort: "low",
+      temperature: 0.9,
+      messages: [
+        { role: "system", content: openingPrompt(input) },
+        { role: "user", content: "Open the haggle." },
+      ],
+    }),
+    signal: AbortSignal.timeout(OPENING_TIMEOUT_MS),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new BrindleUnavailableError(
+      "failed",
+      `Groq returned ${response.status} for the opening line`,
+    );
+  }
+
+  const data = (await response.json()) as GroqTextResponse;
+  const choice = data.choices?.[0];
+  const line = cleanOpening(choice?.message?.content ?? "");
+  if (!line) {
+    throw new BrindleUnavailableError("failed", "Groq returned no opening line");
+  }
+  // A truncated sentence is worse than the fallback.
+  if (choice?.finish_reason === "length" || !isWholeLine(line)) {
+    throw new BrindleUnavailableError("failed", "Groq cut the opening line short");
+  }
+  return line;
+}
+
+async function openingFromAnthropic(input: OpeningInput): Promise<string> {
+  const client = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+    timeout: OPENING_TIMEOUT_MS,
+    maxRetries: 0,
+  });
+
+  const response = await client.messages.create({
+    model: ANTHROPIC_MODEL,
+    max_tokens: OPENING_TOKENS_ANTHROPIC,
+    system: openingPrompt(input),
+    messages: [{ role: "user", content: "Open the haggle." }],
+  });
+
+  const line = cleanOpening(
+    response.content
+      .filter((block): block is Anthropic.TextBlock => block.type === "text")
+      .map((block) => block.text)
+      .join(" "),
+  );
+  if (!line) {
+    throw new BrindleUnavailableError("failed", "model returned no opening line");
+  }
+  return line;
+}
+
+/** One short opening line for a merchant listing, on the same provider. */
+export async function askBrindleOpening(input: OpeningInput): Promise<string> {
+  const provider = getProvider();
+  if (provider === "groq") return openingFromGroq(input);
+  if (provider === "anthropic") return openingFromAnthropic(input);
+  throw new BrindleUnavailableError(
+    "unconfigured",
+    "Neither GROQ_API_KEY nor ANTHROPIC_API_KEY is set",
+  );
+}

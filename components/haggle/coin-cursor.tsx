@@ -8,7 +8,7 @@ import { usePointer, useReducedMotionPreference } from "@/lib/pointer";
 
 const FADE = { duration: 0.15, ease: EASE_OUT };
 /** Ring radius around the pointer when hovering a shelf card. */
-const RING = 22;
+const RING = 19;
 
 type CursorContext = "pointer" | "haggle" | "native";
 
@@ -164,7 +164,7 @@ function Arrow() {
   return (
     <svg
       viewBox="0 0 24 24"
-      className="h-[26px] w-[26px] overflow-visible"
+      className="h-[22px] w-[22px] overflow-visible"
       style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.45))" }}
       aria-hidden
     >

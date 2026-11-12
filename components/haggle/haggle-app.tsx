@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { celebrate } from "@/lib/celebrate";
 import { DEAL_TIMELINE } from "@/lib/deal-timeline";
+import { getMerchantSnapshot } from "@/lib/merchant";
 import { T } from "@/lib/motion";
 import { PointerProvider } from "@/lib/pointer";
 import { sound, useSoundUnlock } from "@/lib/sound";
@@ -28,6 +29,7 @@ import { MuteToggle } from "./mute-toggle";
 import { ReceiptView } from "./receipt";
 import { Room } from "./room";
 import { Shelf } from "./shelf";
+import { SmoothScroll } from "./smooth-scroll";
 
 const START_STATS: NegotiationStats = {
   patience: 100,
@@ -116,6 +118,15 @@ export function HaggleApp() {
   async function submitOffer(offer: number, note: string) {
     if (!product || busy) return;
 
+    // The merchant listing lives in this browser; the room sends it along so
+    // the server can enforce its floor.
+    const merchant =
+      product.id === "merchant" ? getMerchantSnapshot() : null;
+    if (product.id === "merchant" && !merchant) {
+      toast.error("That listing has been cleared. Back to the shelf.");
+      return;
+    }
+
     const buyerMessage: ChatMessage = {
       id: newId(),
       role: "buyer",
@@ -145,6 +156,17 @@ export function HaggleApp() {
           message: note,
           offer,
           history,
+          ...(merchant
+            ? {
+                merchant: {
+                  name: merchant.name,
+                  description: merchant.description,
+                  listPrice: merchant.listPrice,
+                  floorPrice: merchant.floorPrice,
+                  personality: merchant.personality,
+                },
+              }
+            : {}),
         }),
       });
 
@@ -353,6 +375,12 @@ export function HaggleApp() {
     <PointerProvider>
       <div className="relative flex min-h-dvh flex-1 flex-col overflow-x-hidden">
         <Ambient mood={stats.mood} />
+
+        {/* Lenis lives exactly as long as the shelf is the active view. Left
+            mounted through the crossfade it keeps writing its own scroll
+            position over the reset, so the room's first frame is painted at
+            the shop's old offset. */}
+        {phase === "SHELF" && <SmoothScroll />}
         <CursorGlow />
         <CoinCursor dealSignal={deal?.token ?? null} />
 
@@ -376,11 +404,15 @@ export function HaggleApp() {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto w-full max-w-[1240px] flex-1 px-4 pb-16 sm:px-6">
+      {/* One cell, both panels: the outgoing and incoming views crossfade in
+          place instead of stacking, so neither page's top flashes below the
+          other during the transition. */}
+      <main className="relative z-10 mx-auto grid w-full max-w-[1240px] flex-1 content-start px-4 pb-16 sm:px-6">
         <AnimatePresence initial={false}>
           {phase === "SHELF" && (
             <motion.div
               key="shelf"
+              className="col-start-1 row-start-1"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -393,6 +425,7 @@ export function HaggleApp() {
           {product && (phase === "ROOM" || phase === "DEAL" || phase === "EXPELLED") && (
             <motion.div
               key="room"
+              className="col-start-1 row-start-1"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -424,6 +457,7 @@ export function HaggleApp() {
           {phase === "PAID" && receipt && (
             <motion.div
               key="paid"
+              className="col-start-1 row-start-1"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}

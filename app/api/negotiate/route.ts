@@ -16,7 +16,8 @@ import {
   summarise,
   type HistoryTurn,
 } from "@/lib/negotiation";
-import { getServerProduct } from "@/lib/products.server";
+import { merchantToProduct, PERSONALITY_IDS } from "@/lib/merchant";
+import { getServerProduct, type ServerProduct } from "@/lib/products.server";
 
 const HistorySchema = z.object({
   role: z.enum(["buyer", "brindle"]),
@@ -25,11 +26,25 @@ const HistorySchema = z.object({
   counter: z.number().finite().min(0).max(100_000).nullish(),
 });
 
+/** A merchant listing travels with the request: there is no server-side store. */
+const MerchantSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80),
+    description: z.string().trim().max(200).default(""),
+    listPrice: z.number().finite().positive().max(100_000),
+    floorPrice: z.number().finite().positive().max(100_000),
+    personality: z.enum(PERSONALITY_IDS),
+  })
+  .refine((value) => value.floorPrice < value.listPrice, {
+    message: "floor_must_be_below_list",
+  });
+
 const BodySchema = z.object({
   productId: z.string().min(1).max(64),
   message: z.string().max(280).default(""),
   offer: z.number().finite().min(1).max(100_000),
   history: z.array(HistorySchema).max(16).default([]),
+  merchant: MerchantSchema.optional(),
 });
 
 /** Small in-memory limiter; enough to stop a runaway client on one instance. */
@@ -72,10 +87,20 @@ export async function POST(request: Request) {
     );
   }
 
-  const { productId, message, offer, history } = parsed.data;
-  const product = getServerProduct(productId);
-  if (!product) {
-    return NextResponse.json({ error: "unknown_product" }, { status: 404 });
+  const { productId, message, offer, history, merchant } = parsed.data;
+
+  let product: ServerProduct;
+  if (productId === "merchant") {
+    if (!merchant) {
+      return NextResponse.json({ error: "invalid_merchant" }, { status: 400 });
+    }
+    product = { ...merchantToProduct(merchant), floorPrice: merchant.floorPrice };
+  } else {
+    const catalogueProduct = getServerProduct(productId);
+    if (!catalogueProduct) {
+      return NextResponse.json({ error: "unknown_product" }, { status: 404 });
+    }
+    product = catalogueProduct;
   }
 
   const cleanHistory: HistoryTurn[] = history.map((turn) => ({
@@ -165,7 +190,17 @@ export async function POST(request: Request) {
     let dealToken: string | null = null;
     let expiresAt: number | null = null;
     if (deal && price !== null) {
-      const token = createDealToken(product.id, price);
+      const token = createDealToken(
+        product.id,
+        price,
+        product.id === "merchant"
+          ? {
+              productName: product.name,
+              floorPrice: product.floorPrice,
+              listPrice: product.listPrice,
+            }
+          : undefined,
+      );
       dealToken = token.token;
       expiresAt = token.expiresAt;
     }

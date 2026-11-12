@@ -8,6 +8,10 @@ const PayloadSchema = z.object({
   price: z.number().finite().positive().max(100_000),
   exp: z.number().int().positive(),
   jti: z.string().min(8).max(64),
+  /** Merchant listings carry their own signed name and bounds. */
+  productName: z.string().min(1).max(80).optional(),
+  floorPrice: z.number().finite().positive().max(100_000).optional(),
+  listPrice: z.number().finite().positive().max(100_000).optional(),
 });
 
 export type DealPayload = z.infer<typeof PayloadSchema>;
@@ -36,8 +40,14 @@ function sign(payload: string): string {
 export function createDealToken(
   productId: string,
   price: number,
-  ttlMs: number = DEAL_TTL_MS,
+  options: {
+    ttlMs?: number;
+    productName?: string;
+    floorPrice?: number;
+    listPrice?: number;
+  } = {},
 ): { token: string; expiresAt: number } {
+  const ttlMs = options.ttlMs ?? DEAL_TTL_MS;
   const expiresAt = Date.now() + ttlMs;
   const payload: DealPayload = {
     v: 1,
@@ -45,6 +55,13 @@ export function createDealToken(
     price: Math.round(price * 100) / 100,
     exp: expiresAt,
     jti: crypto.randomUUID(),
+    ...(options.productName ? { productName: options.productName } : {}),
+    ...(typeof options.floorPrice === "number"
+      ? { floorPrice: options.floorPrice }
+      : {}),
+    ...(typeof options.listPrice === "number"
+      ? { listPrice: options.listPrice }
+      : {}),
   };
 
   const encoded = Buffer.from(JSON.stringify(payload), "utf8").toString(
