@@ -312,6 +312,18 @@ html[data-cursor="custom"] [data-cursor-native] iframe {
   cursor: auto;
 }
 
+/* The intro owns the screen for ~3s: no scrolling, and the native pointer
+   comes back because the coin cursor sits below the veil. */
+html.intro-active,
+html.intro-active body {
+  overflow: hidden;
+}
+
+html.intro-active,
+html.intro-active * {
+  cursor: auto !important;
+}
+
 @keyframes aurora-drift {
   0% {
     transform: translate3d(-6%, -4%, 0) scale(1);
@@ -340,6 +352,18 @@ html[data-cursor="custom"] [data-cursor-native] iframe {
   }
   100% {
     transform: translateX(220%);
+  }
+}
+
+/* Resting heartbeat for the intro mark. Added by JS only after the spring
+   settles, so it can never fight the entrance tween. */
+@keyframes intro-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
   }
 }
 
@@ -381,6 +405,11 @@ html[data-cursor="custom"] [data-cursor-native] iframe {
   animation: shimmer-sweep 1.6s cubic-bezier(0.22, 1, 0.36, 1) infinite;
 }
 
+.animate-intro-pulse {
+  animation: intro-pulse 2.4s ease-in-out infinite;
+  transform-origin: center;
+}
+
 .caret::after {
   content: "";
   display: inline-block;
@@ -395,7 +424,8 @@ html[data-cursor="custom"] [data-cursor-native] iframe {
 @media (prefers-reduced-motion: reduce) {
   .animate-aurora,
   .animate-soft-float,
-  .animate-shimmer {
+  .animate-shimmer,
+  .animate-intro-pulse {
     animation: none !important;
   }
 

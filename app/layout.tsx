@@ -46,6 +46,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}
+        {/* If scripts never run, the intro veil cannot lift itself. Keep the
+            page visible rather than leaving a blank dark screen. */}
+        <noscript>
+          <style>{`[data-intro-content]{opacity:1!important}[data-intro-overlay]{display:none!important}`}</style>
+        </noscript>
         <Toaster
           theme="dark"
           position="bottom-center"

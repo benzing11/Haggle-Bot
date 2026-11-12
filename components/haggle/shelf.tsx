@@ -39,14 +39,17 @@ export function Shelf({ onSelect }: { onSelect: (product: Product) => void }) {
         </Parallax>
 
         <Parallax depth={9}>
-          <h1 className="mt-6 max-w-[16ch] font-display text-[clamp(2.9rem,8vw,5.6rem)] leading-[0.92] tracking-[-0.02em] text-ink">
+          <h1
+            data-intro-rise
+            className="mt-6 max-w-[16ch] font-display text-[clamp(2.9rem,8vw,5.6rem)] leading-[0.92] tracking-[-0.02em] text-ink"
+          >
             Nothing here has a price.
             <span className="mt-1 block italic gold-text">Yet.</span>
           </h1>
         </Parallax>
 
         <Parallax depth={12}>
-          <div className="mt-6 flex max-w-xl flex-col gap-4 sm:mt-8">
+          <div data-intro-rise className="mt-6 flex max-w-xl flex-col gap-4 sm:mt-8">
             <p className="text-[15px] leading-relaxed text-ink-muted sm:text-base">
               Pick an object. Brindle — the shopkeeper — has a secret floor and a
               finite amount of patience. Talk him down, then pay exactly what you
